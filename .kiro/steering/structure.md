@@ -8,7 +8,7 @@ inclusion: always
 
 - **Frontend:** Next.js + TypeScript
 - **Backend:** Python
-- **Graph store:** Neo4j (local, provisioned by project setup)
+- **Graph store:** Neo4j (local, provisioned by project setup) — all Cypher queries written in openCypher to remain portable across openCypher-compatible stores (Neo4j, Amazon Neptune, FalkorDB where traversal is not required, Memgraph, etc.)
 - **Vector index:** pgvector (local, provisioned by project setup)
 - **Catalogue source:** Purdue University — Modern Campus Acalog (`catalog.purdue.edu`)
 - **Secondary source:** purdue.io OData v4 API (community-built, open)
@@ -57,6 +57,7 @@ This is a structural guarantee, not a policy.
 - FalkorDB is unsuitable as the primary graph store (does not support traversal-based search; prerequisite tracing requires traversal).
 - Managed cloud graph stores are unsuitable for iterative development (no small tier).
 - Connection details live in configuration so promotion to a managed store is a config change, not a rewrite.
+- All graph queries are written in openCypher. No Neo4j-specific extensions (APOC, GDS, proprietary procedures) are used in any query, so the graph layer is portable to any openCypher-compatible store (Amazon Neptune, Memgraph, etc.).
 
 ## Research artefact framing
 
