@@ -101,3 +101,15 @@ This is the probabilistic core of the system. It is what allows the advisory que
 - WHEN an inference run completes, THE SYSTEM SHALL produce a JSON summary containing: concepts processed, `concept_dependency` edges inferred, `concept_similarity` edges inferred, edges rejected (by reason), edges removed for cycle prevention, edges rejected for prerequisite ordering contradiction, confidence distribution (mean, median, p10, p90), and run duration.
 - THE SYSTEM SHALL write the summary to a configurable output path.
 - THE SYSTEM SHALL exit with a non-zero code if the ratio of rejected edges to total candidate edges exceeds a configurable threshold (default: 20%).
+
+---
+
+### REQ-CGI-08 — openCypher-only graph queries
+
+**User story:** As a developer, I want all graph queries in the inference pipeline written in openCypher with no store-specific extensions, so that the graph store can be replaced without rewriting any query.
+
+**Acceptance criteria:**
+
+- THE SYSTEM SHALL NOT call any store-specific procedure or plugin in any graph query (no APOC, no GDS, no proprietary functions).
+- THE SYSTEM SHALL route all graph reads and writes through the `GraphClient` interface defined in `canonical-schema` (REQ-CS-11), whose connection details are supplied by configuration.
+- ALL queries written in this pipeline SHALL pass validation against the openCypher specification.
