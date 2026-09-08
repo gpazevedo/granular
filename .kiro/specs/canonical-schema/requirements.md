@@ -133,3 +133,16 @@ All enforced invariants from steering §structure are implemented here as constr
 - THE SYSTEM SHALL provide `to_json()` and `from_json()` methods (or equivalent) for every schema record type.
 - WHEN a record is serialised and then deserialised, THE SYSTEM SHALL produce an object that is equal to the original (all field values preserved, including provenance).
 - THE SYSTEM SHALL reject deserialisation of a JSON object that is missing required fields, raising a `SchemaValidationError` per REQ-CS-09.
+
+---
+
+### REQ-CS-11 — openCypher-only graph queries
+
+**User story:** As a developer, I want all graph queries written in openCypher with no store-specific extensions, so that the graph layer can be moved to a different openCypher-compatible store without rewriting queries.
+
+**Acceptance criteria:**
+
+- THE SYSTEM SHALL NOT use any graph-store-specific procedure, plugin, or extension in any query (e.g. no APOC, no GDS, no proprietary index hints).
+- ALL Cypher queries in the codebase SHALL be valid openCypher and SHALL be executable on any openCypher-compatible graph store (Neo4j, Amazon Neptune, Memgraph, etc.).
+- THE SYSTEM SHALL abstract graph store access behind a client interface whose connection details are supplied by configuration, so that changing the underlying store is a configuration change and not a code change.
+- THE SYSTEM SHALL include at least one integration test that runs the full query suite against a second openCypher-compatible store or a store-agnostic openCypher validator, confirming portability.
