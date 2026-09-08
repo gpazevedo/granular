@@ -58,7 +58,7 @@ All five §6 queries remain in scope after the primary capability is built:
 
 - Frontend: Next.js with TypeScript
 - Backend: Python
-- Graph store: Neo4j (local, provisioned by project setup scripts)
+- Graph store: Neo4j (local, provisioned by project setup scripts) — all queries in openCypher; no Neo4j-specific extensions used, keeping the graph layer portable to other openCypher-compatible stores
 - Vector index: pgvector (local, provisioned by project setup scripts)
 - Connection details in configuration — promotion to managed store is a config change
 
