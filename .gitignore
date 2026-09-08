@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+pip-wheel-metadata/
+*.whl
+
+# Coverage / test artefacts
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.cache/
+*.tsbuildinfo
+
+# Data outputs (generated — not committed)
+data/ingestion/output/
+data/evaluation/runs/
+
+# Fetch cache (generated)
+fetch_cache.db
+
+# Embeddings (generated — large)
+*.pgdump
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Secrets
+*.pem
+*.key
+secrets/
+
+# Keep these seed files (generated once, then committed)
+!data/cs2023_vocabulary.json
