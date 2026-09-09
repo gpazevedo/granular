@@ -1,0 +1,74 @@
+"""ExtractionConfig — runtime configuration for the concept-extraction pipeline."""
+
+from __future__ import annotations
+
+import os
+import tomllib
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Optional
+
+
+@dataclass
+class ExtractionConfig:
+    vocabulary_path: Path = Path("data/cs2023_vocabulary.json")
+    llm_model_id: str = "openai/gpt-4o-mini"
+    embedding_model_id: str = "openai/text-embedding-3-small"
+    top_k: int = 10
+    min_confidence: float = 0.3
+    low_confidence_threshold: float = 0.5
+    min_description_length: int = 20
+    pgvector_dsn: str = "postgresql://granular:changeme@localhost:5432/granular"
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: str = "changeme"
+    output_dir: Path = Path("data/extraction/output")
+    summary_path: Path = Path("data/extraction/output/summary.json")
+    adapter_name: str = "granular-extraction"
+    adapter_version: str = "1.0.0"
+    # Reranking signal weights
+    weight_similarity: float = 0.40
+    weight_cooccurrence: float = 0.35
+    weight_level_proximity: float = 0.20
+    weight_department_prior: float = 0.05
+
+    def __post_init__(self) -> None:
+        self.vocabulary_path = Path(self.vocabulary_path)
+        self.output_dir = Path(self.output_dir)
+        self.summary_path = Path(self.summary_path)
+        if not (0.0 < self.min_confidence < 1.0):
+            raise ValueError("min_confidence must be in (0, 1)")
+        if self.top_k < 1:
+            raise ValueError("top_k must be >= 1")
+
+    @classmethod
+    def from_toml(cls, path: Path) -> "ExtractionConfig":
+        with open(path, "rb") as f:
+            data = tomllib.load(f)
+        return cls(**{k: v for k, v in data.get("extraction", data).items()})
+
+    @classmethod
+    def from_env(cls, base: Optional["ExtractionConfig"] = None) -> "ExtractionConfig":
+        cfg = base or cls()
+        env_map = {
+            "GRANULAR_VOCABULARY_PATH": ("vocabulary_path", Path),
+            "GRANULAR_LLM_MODEL_ID": "llm_model_id",
+            "GRANULAR_EMBEDDING_MODEL_ID": "embedding_model_id",
+            "GRANULAR_TOP_K": ("top_k", int),
+            "OPENAI_LLM_MODEL": "llm_model_id",
+            "OPENAI_EMBEDDING_MODEL": "embedding_model_id",
+            "PGVECTOR_DSN": "pgvector_dsn",
+            "NEO4J_URI": "neo4j_uri",
+            "NEO4J_USER": "neo4j_user",
+            "NEO4J_PASSWORD": "neo4j_password",
+        }
+        for env_key, field_spec in env_map.items():
+            val = os.environ.get(env_key)
+            if val is None:
+                continue
+            if isinstance(field_spec, tuple):
+                fname, coerce = field_spec
+                setattr(cfg, fname, coerce(val))
+            else:
+                setattr(cfg, field_spec, val)
+        return cfg
