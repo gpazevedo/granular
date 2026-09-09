@@ -78,3 +78,41 @@ class DiscoverResponse(BaseModel):
     thin_coverage: list[ThinCoverageNote]
     status: Literal["ok", "no_concepts_resolved", "no_courses_found"]
     status_message: Optional[str] = None
+
+
+# --- Readiness (REQ-AQ-09) ---------------------------------------------------
+
+class ReadinessRequest(BaseModel):
+    course_id: str = Field(..., min_length=1)
+    # Session-scoped only; never persisted.
+    completed_courses: list[str] = Field(default_factory=list)
+
+
+class UnmetPrerequisite(BaseModel):
+    course_id: str
+    title: str
+    verbatim: str  # catalogue's verbatim wording, "" if unavailable
+
+
+class ReadinessResponse(BaseModel):
+    course_id: str
+    ready: bool
+    unmet_prerequisites: list[UnmetPrerequisite]
+    evidence_basis: Literal["declared"] = "declared"
+    status: Literal["ok", "course_not_found"] = "ok"
+    status_message: Optional[str] = None
+
+
+# --- Unlock (REQ-AQ-10) ------------------------------------------------------
+
+class UnlockedCourse(BaseModel):
+    course_id: str
+    title: str
+
+
+class UnlockResponse(BaseModel):
+    course_id: str
+    unlocks: list[UnlockedCourse]
+    evidence_basis: Literal["declared"] = "declared"
+    status: Literal["ok", "course_not_found"] = "ok"
+    status_message: Optional[str] = None

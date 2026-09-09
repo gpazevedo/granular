@@ -5,6 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 
 from granular.api.config import APIConfig
+from granular.api.services.advisory_service import AdvisoryService
 from granular.api.services.discover_service import DiscoverService
 from granular.api.services.graph_queries import Neo4jQueryService
 from granular.api.services.resolver import QueryResolver
@@ -35,3 +36,7 @@ def get_resolver() -> QueryResolver:
 def get_discover_service() -> DiscoverService:
     cfg = get_config()
     return DiscoverService(get_resolver(), get_graph_service(), cfg)
+
+
+def get_advisory_service() -> AdvisoryService:
+    return AdvisoryService(get_graph_service())

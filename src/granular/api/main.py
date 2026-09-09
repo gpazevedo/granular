@@ -17,7 +17,7 @@ except ImportError:  # pragma: no cover - dotenv is an optional convenience
     pass
 
 from granular.api.config import APIConfig
-from granular.api.routers import discover
+from granular.api.routers import advisory, discover
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,6 +43,7 @@ def create_app(config: APIConfig | None = None) -> FastAPI:
     )
 
     app.include_router(discover.router)
+    app.include_router(advisory.router)
 
     @app.get("/health")
     def health() -> dict:

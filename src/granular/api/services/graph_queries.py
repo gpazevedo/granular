@@ -67,6 +67,66 @@ class Neo4jQueryService:
                 )
         return matches
 
+    def course_exists(self, course_id: str) -> bool:
+        driver = self._get_driver()
+        with driver.session() as session:
+            rec = session.run(
+                "MATCH (c:Course {course_id: $cid}) RETURN count(c) AS n",
+                cid=course_id,
+            ).single()
+            return bool(rec and rec["n"] > 0)
+
+    def get_prerequisites(self, course_id: str) -> list[dict]:
+        """Direct declared prerequisites of a course.
+
+        Returns [{course_id, title, verbatim}] for each (course)-[:PREREQUISITE]->(prereq).
+        """
+        driver = self._get_driver()
+        rows: list[dict] = []
+        with driver.session() as session:
+            result = session.run(
+                """
+                MATCH (c:Course {course_id: $cid})-[r:PREREQUISITE]->(p:Course)
+                RETURN p.course_id AS course_id,
+                       p.title AS title,
+                       r.verbatim_text AS verbatim
+                ORDER BY p.course_id
+                """,
+                cid=course_id,
+            )
+            for row in result:
+                rows.append(
+                    {
+                        "course_id": row["course_id"],
+                        "title": row["title"] or "",
+                        "verbatim": row["verbatim"] or "",
+                    }
+                )
+        return rows
+
+    def get_unlocks(self, course_id: str) -> list[dict]:
+        """Courses that declare this course (directly or transitively) as a
+        prerequisite — i.e. what taking this course helps open up.
+
+        Forward traversal over declared PREREQUISITE edges only.
+        """
+        driver = self._get_driver()
+        rows: list[dict] = []
+        with driver.session() as session:
+            result = session.run(
+                """
+                MATCH (dependent:Course)-[:PREREQUISITE*1..]->(c:Course {course_id: $cid})
+                WHERE dependent.course_id <> $cid
+                RETURN DISTINCT dependent.course_id AS course_id,
+                       dependent.title AS title
+                ORDER BY dependent.course_id
+                """,
+                cid=course_id,
+            )
+            for row in result:
+                rows.append({"course_id": row["course_id"], "title": row["title"] or ""})
+        return rows
+
     def declared_prereqs_between(self, course_ids: list[str]) -> set[tuple[str, str]]:
         driver = self._get_driver()
         pairs: set[tuple[str, str]] = set()

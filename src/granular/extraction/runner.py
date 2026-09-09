@@ -71,6 +71,27 @@ def _collect_prereq_course_ids(node) -> list[str]:
     return unique
 
 
+def _collect_prereq_verbatim(declared_prerequisites) -> dict[str, str]:
+    """Map prereq course_id -> catalogue verbatim wording, from the rule list.
+
+    Each rule carries verbatim_text and a structured predicate tree; we attach
+    a rule's verbatim to every course_id it references. Used for the readiness
+    advisory query (REQ-AQ-09).
+    """
+    verbatim: dict[str, str] = {}
+    if not isinstance(declared_prerequisites, list):
+        return verbatim
+    for rule in declared_prerequisites:
+        if not isinstance(rule, dict):
+            continue
+        text = rule.get("verbatim_text") or ""
+        for cid in _collect_prereq_course_ids(rule.get("structured")):
+            # Keep the first non-empty verbatim seen for a given course.
+            if cid not in verbatim or (not verbatim[cid] and text):
+                verbatim[cid] = text
+    return verbatim
+
+
 def _course_from_dict(d: dict) -> Course:
     """Reconstruct a Course from a serialised ingestion record."""
     prov = d["provenance"]
@@ -126,7 +147,9 @@ class ExtractionRunner:
         logger.info("Loaded %d knowledge units from %s", len(knowledge_units), cfg.vocabulary_path)
 
         # Load courses
-        courses, course_prereqs = self._load_courses(courses_path, course_subset)
+        courses, course_prereqs, course_prereq_verbatim = self._load_courses(
+            courses_path, course_subset
+        )
         logger.info("Loaded %d courses for extraction", len(courses))
 
         embedder = Embedder(cfg.embedding_model_id, cfg.pgvector_dsn)
@@ -146,7 +169,9 @@ class ExtractionRunner:
             for course in courses:
                 graph.write_course(course)
                 graph.write_prerequisite_edges(
-                    course.course_id, course_prereqs.get(course.course_id, [])
+                    course.course_id,
+                    course_prereqs.get(course.course_id, []),
+                    course_prereq_verbatim.get(course.course_id, {}),
                 )
 
         snapshot = ConceptGraphSnapshot()
@@ -218,10 +243,14 @@ class ExtractionRunner:
         self,
         courses_path: Path,
         subset: Optional[list[str]],
-    ) -> tuple[list[Course], dict[str, list[str]]]:
-        """Load courses and a course_id -> declared-prerequisite-course-ids map."""
+    ) -> tuple[list[Course], dict[str, list[str]], dict[str, dict[str, str]]]:
+        """Load courses plus, keyed by course_id:
+        - a list of declared-prerequisite course ids
+        - a map of prereq course id -> catalogue verbatim wording
+        """
         courses: list[Course] = []
         prereqs: dict[str, list[str]] = {}
+        verbatim: dict[str, dict[str, str]] = {}
         with open(courses_path, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
@@ -236,6 +265,9 @@ class ExtractionRunner:
                     prereqs[course.course_id] = _collect_prereq_course_ids(
                         d.get("declared_prerequisites")
                     )
+                    verbatim[course.course_id] = _collect_prereq_verbatim(
+                        d.get("declared_prerequisites")
+                    )
                 except Exception as exc:
                     logger.warning("Could not load course %s: %s", d.get("course_id"), exc)
-        return courses, prereqs
+        return courses, prereqs, verbatim
