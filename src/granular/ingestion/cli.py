@@ -10,8 +10,10 @@ from typing import Optional
 import typer
 
 from granular.ingestion.config import IngestConfig
+from granular.ingestion.purdue_runner import PurdueRunner
 from granular.ingestion.runner import IngestRunner
 from granular.ingestion.snapshot import create_snapshot, verify_snapshot
+from granular.ingestion.uiuc_runner import UiucRunner
 
 app = typer.Typer(help="Ingest Purdue CS course catalogue from Modern Campus Acalog.")
 
@@ -67,6 +69,70 @@ def run(
             err=True,
         )
         raise typer.Exit(code=1)
+
+
+@app.command()
+def uiuc(
+    config_path: Optional[Path] = typer.Option(None, "--config", help="TOML config file"),
+    output_dir: Optional[Path] = typer.Option(None, "--output-dir", help="Output directory"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Count courses only; no output files"),
+) -> None:
+    """Ingest UIUC CS courses from the static catalog page.
+
+    UIUC's catalog is a single static HTML page with all CS courses. No bot
+    mitigation, no pagination. This is the primary working ingestion path.
+    """
+    if config_path and config_path.exists():
+        cfg = IngestConfig.from_toml(config_path)
+    else:
+        cfg = IngestConfig()
+    cfg = IngestConfig.from_env(cfg)
+    if output_dir:
+        cfg.output_dir = output_dir
+
+    runner = UiucRunner(cfg)
+    summary = runner.run(dry_run=dry_run)
+
+    typer.echo(
+        f"\nUIUC ingestion complete: {summary.courses_succeeded}/{summary.courses_attempted} courses, "
+        f"{summary.prereqs_structured} structured prereqs."
+    )
+
+
+@app.command()
+def purdue(
+    config_path: Optional[Path] = typer.Option(None, "--config", help="TOML config file"),
+    force: bool = typer.Option(False, "--force", help="Re-fetch all pages ignoring cache"),
+    output_dir: Optional[Path] = typer.Option(None, "--output-dir", help="Output directory"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="List courses only; no canonical fetches"),
+    limit: Optional[int] = typer.Option(None, "--limit", help="Cap number of courses (for testing)"),
+) -> None:
+    """Ingest Purdue CS via purdue.io OData + CS canonical syllabus pages.
+
+    This is the working strategy after the Acalog HTML catalogue was found to be
+    behind bot mitigation. OData provides the course spine; canonical pages
+    provide descriptions and prerequisites where they exist.
+    """
+    if config_path and config_path.exists():
+        cfg = IngestConfig.from_toml(config_path)
+    else:
+        cfg = IngestConfig()
+    cfg = IngestConfig.from_env(cfg)
+
+    if force:
+        cfg.force_refetch = True
+    if output_dir:
+        cfg.output_dir = output_dir
+
+    runner = PurdueRunner(cfg)
+    summary = runner.run(dry_run=dry_run, limit=limit)
+
+    typer.echo(
+        f"\nPurdue ingestion complete: {summary.courses_succeeded}/{summary.courses_attempted} courses, "
+        f"{summary.prereqs_structured} structured prereqs, "
+        f"{len([s for s in summary.courses_skipped if s.reason == 'no_canonical_page'])} without canonical page, "
+        f"{len(summary.courses_failed)} failed."
+    )
 
 
 @app.command()

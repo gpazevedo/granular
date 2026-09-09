@@ -40,16 +40,14 @@ class PurdueIoClient:
     def fetch_all(self) -> list[ODataCourse]:
         """Fetch all courses for the configured subject.
 
-        Raises ODataUnavailable on HTTP error or timeout.
+        Uses a navigation-property filter (Subject/Abbreviation eq 'CS'). The
+        server caps $top at 0, so no $top is sent; the filtered collection
+        returns in full. Raises ODataUnavailable on HTTP error or timeout.
         """
-        url = (
-            f"{self._base}/Courses"
-            f"?$filter=Subject eq '{self._subject}'"
-            f"&$select=CourseID,Subject,Number,Title,Description,CreditHours"
-            f"&$top=500"
-        )
+        url = f"{self._base}/Courses"
+        params = {"$filter": f"Subject/Abbreviation eq '{self._subject}'"}
         try:
-            response = httpx.get(url, timeout=self._timeout)
+            response = httpx.get(url, params=params, timeout=self._timeout)
             response.raise_for_status()
             data = response.json()
             courses = []
@@ -57,12 +55,12 @@ class PurdueIoClient:
                 try:
                     courses.append(
                         ODataCourse(
-                            course_id=str(item.get("CourseID", "")),
-                            subject=item.get("Subject", ""),
+                            course_id=str(item.get("Id", "")),
+                            subject=self._subject,
                             number=str(item.get("Number", "")),
                             title=item.get("Title", ""),
                             description=item.get("Description", "") or "",
-                            credit_hours=float(item["CreditHours"]) if item.get("CreditHours") else None,
+                            credit_hours=float(item["CreditHours"]) if item.get("CreditHours") is not None else None,
                         )
                     )
                 except (KeyError, ValueError, TypeError) as exc:
