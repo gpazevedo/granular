@@ -20,7 +20,7 @@ This starts:
 - **Neo4j** (bolt://localhost:7687) — graph store for the concept knowledge graph
 - **PostgreSQL with pgvector** (localhost:5432) — vector store for embeddings
 
-Both services write to Docker volumes, so data persists across restarts.
+Both services write to Docker volumes, so data persists across restarts. See `DATA_LIFECYCLE.md` for details.
 
 ### 2. Configure .env
 
