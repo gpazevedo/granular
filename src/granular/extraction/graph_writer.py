@@ -73,14 +73,23 @@ class GraphWriter:
                 level=course.level.value,
             )
 
-    def write_prerequisite_edges(self, course_id: str, prereq_course_ids: list[str]) -> None:
+    def write_prerequisite_edges(
+        self,
+        course_id: str,
+        prereq_course_ids: list[str],
+        verbatim_by_prereq: dict[str, str] | None = None,
+    ) -> None:
         """Write declared PREREQUISITE edges: (course)-[:PREREQUISITE]->(prereq).
 
         The prerequisite target courses are MERGEd as Course nodes so the edge
         exists even if that course has no extracted concepts of its own.
+        ``verbatim_by_prereq`` optionally supplies the catalogue's verbatim
+        wording per prerequisite course id, stored on the edge for the
+        readiness advisory query.
         """
         if not prereq_course_ids:
             return
+        verbatim_by_prereq = verbatim_by_prereq or {}
         driver = self._get_driver()
         with driver.session() as session:
             for prereq_id in prereq_course_ids:
@@ -88,10 +97,12 @@ class GraphWriter:
                     """
                     MERGE (a:Course {course_id: $course_id})
                     MERGE (b:Course {course_id: $prereq_id})
-                    MERGE (a)-[:PREREQUISITE]->(b)
+                    MERGE (a)-[r:PREREQUISITE]->(b)
+                    SET r.verbatim_text = $verbatim
                     """,
                     course_id=course_id,
                     prereq_id=prereq_id,
+                    verbatim=verbatim_by_prereq.get(prereq_id, ""),
                 )
 
     def write_concept(self, concept: Concept) -> None:
