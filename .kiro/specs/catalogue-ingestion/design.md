@@ -265,7 +265,7 @@ catalog.purdue.edu ──► RobotsCache ──► AcalogCatalogueAdapter
 ## CLI
 
 ```text
-granular-ingest [OPTIONS]
+granular-ingest run [OPTIONS]
 
 Options:
   --config PATH       TOML config file (default: ingest.toml)
@@ -274,7 +274,45 @@ Options:
   --workers N         Parallel fetch workers (default: 1)
   --output-dir PATH   Output directory for records
   --dry-run           Discover URLs and report counts; do not fetch or write
+
+granular-ingest snapshot NAME [OPTIONS]
+  --output-dir PATH        Ingestion output to promote (default: data/ingestion/output)
+  --snapshot-root PATH     Committed snapshot root (default: data/snapshots)
+  --catalogue-year YEAR    Catalogue year label for the manifest
+
+granular-ingest verify-snapshot NAME [OPTIONS]
+  --snapshot-root PATH     Committed snapshot root (default: data/snapshots)
 ```
+
+## Fetch-once, reuse-many (snapshots)
+
+Purdue is a public catalogue that changes at most once per academic year, so the
+network fetch should happen only once. Two layers support this:
+
+1. **HTTP conditional-GET cache** (`fetch_cache.db`) — avoids re-downloading
+   unchanged pages within the same environment. Ephemeral; not committed.
+
+2. **Committed snapshots** (`snapshot.py`) — the durable reuse mechanism.
+   After a successful `run`, `granular-ingest snapshot <name>` copies the parsed
+   canonical-schema artefacts (`courses.jsonl`, `edges.jsonl`, `programmes.jsonl`)
+   and the run summary into `data/snapshots/<name>/`, writes a `manifest.json`
+   with per-file sha256 checksums and record counts, and this directory IS
+   committed to the repository (unlike `data/ingestion/output/`, which is
+   gitignored).
+
+Downstream stages read the snapshot directly and never touch the network:
+
+```text
+granular-ingest run                          # fetch Purdue once
+granular-ingest snapshot purdue-2026-2027    # promote to committed snapshot
+git add data/snapshots/purdue-2026-2027      # commit for reuse
+granular-extract run --courses-file data/snapshots/purdue-2026-2027/courses.jsonl
+```
+
+`verify-snapshot` re-checks the committed files against the manifest checksums,
+so a corrupted or partially-committed snapshot fails loudly. Provenance fields
+(source URL, retrieval date, catalogue year) are already on every record, so the
+snapshot is self-documenting.
 
 ---
 
