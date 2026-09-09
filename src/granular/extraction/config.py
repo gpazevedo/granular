@@ -77,6 +77,10 @@ class ExtractionConfig:
         if os.environ.get("ANTHROPIC_LLM_MODEL"):
             cfg.llm_model_id = f"anthropic/{os.environ['ANTHROPIC_LLM_MODEL']}"
         
+        # If Bedrock model is set, wrap it with provider prefix
+        if os.environ.get("BEDROCK_LLM_MODEL"):
+            cfg.llm_model_id = f"bedrock/{os.environ['BEDROCK_LLM_MODEL']}"
+        
         # Ensure embedding model has provider prefix
         if cfg.embedding_model_id and "/" not in cfg.embedding_model_id:
             cfg.embedding_model_id = f"openai/{cfg.embedding_model_id}"

@@ -72,6 +72,33 @@ Reads courses from the ingestion output, calls the LLM to extract CS2023-aligned
 - Alignment edges (course → concept)
 - Embeddings to the vector store (pgvector)
 
+Supports OpenAI, Anthropic Claude, or AWS Bedrock (Nova). Configure in `.env`:
+
+**AWS Bedrock Nova (recommended for cost):**
+```bash
+BEDROCK_LLM_MODEL=us.amazon.nova-lite-v1:0
+OPENAI_API_KEY=sk-...  # For embeddings
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+AWS_REGION=us-east-1
+```
+
+Requires AWS credentials (`~/.aws/credentials` or env vars).
+
+**Anthropic Claude:**
+```bash
+ANTHROPIC_LLM_MODEL=claude-3-5-haiku-20241022
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...  # For embeddings
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+```
+
+**OpenAI (default):**
+```bash
+OPENAI_LLM_MODEL=gpt-4o-mini
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+OPENAI_API_KEY=sk-...
+```
+
 ### Infer graph structure
 
 ```bash
