@@ -50,6 +50,48 @@ class GraphWriter:
                 source=ku.source,
             )
 
+    def write_course(self, course) -> None:
+        """Write (or enrich) a Course node with the properties inference needs.
+
+        In particular `course_number` is required by the inference pipeline's
+        course-level signal; a bare `course_id`-only node is not sufficient.
+        """
+        driver = self._get_driver()
+        with driver.session() as session:
+            session.run(
+                """
+                MERGE (course:Course {course_id: $course_id})
+                SET course.course_number = $course_number,
+                    course.subject_code = $subject_code,
+                    course.title = $title
+                """,
+                course_id=course.course_id,
+                course_number=str(course.course_number),
+                subject_code=course.subject_code,
+                title=course.title,
+            )
+
+    def write_prerequisite_edges(self, course_id: str, prereq_course_ids: list[str]) -> None:
+        """Write declared PREREQUISITE edges: (course)-[:PREREQUISITE]->(prereq).
+
+        The prerequisite target courses are MERGEd as Course nodes so the edge
+        exists even if that course has no extracted concepts of its own.
+        """
+        if not prereq_course_ids:
+            return
+        driver = self._get_driver()
+        with driver.session() as session:
+            for prereq_id in prereq_course_ids:
+                session.run(
+                    """
+                    MERGE (a:Course {course_id: $course_id})
+                    MERGE (b:Course {course_id: $prereq_id})
+                    MERGE (a)-[:PREREQUISITE]->(b)
+                    """,
+                    course_id=course_id,
+                    prereq_id=prereq_id,
+                )
+
     def write_concept(self, concept: Concept) -> None:
         """Write a Concept node and, if aligned, an ALIGNED_TO edge."""
         driver = self._get_driver()
