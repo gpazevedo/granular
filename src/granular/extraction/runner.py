@@ -29,6 +29,48 @@ from granular.schema import (
 logger = logging.getLogger(__name__)
 
 
+def _collect_prereq_course_ids(node) -> list[str]:
+    """Flatten a declared-prerequisite structure into a list of course IDs.
+
+    Handles the raw serialised shapes: a list of rule dicts, each with a
+    ``structured`` predicate tree of SingleCourse / AndList / OrList nodes.
+    AND/OR structure is ignored — inference treats any declared prerequisite
+    course as a prior, so we collect every referenced course_id.
+    """
+    ids: list[str] = []
+
+    def walk(n) -> None:
+        if n is None:
+            return
+        if isinstance(n, list):
+            for item in n:
+                walk(item)
+            return
+        if isinstance(n, dict):
+            # A prerequisite rule wrapper: descend into its structured tree.
+            if "structured" in n:
+                walk(n.get("structured"))
+                return
+            # An AndList / OrList node.
+            if "children" in n:
+                walk(n.get("children"))
+                return
+            # A SingleCourse leaf.
+            cid = n.get("course_id")
+            if cid:
+                ids.append(cid)
+
+    walk(node)
+    # De-duplicate while preserving order.
+    seen: set[str] = set()
+    unique: list[str] = []
+    for cid in ids:
+        if cid not in seen:
+            seen.add(cid)
+            unique.append(cid)
+    return unique
+
+
 def _course_from_dict(d: dict) -> Course:
     """Reconstruct a Course from a serialised ingestion record."""
     prov = d["provenance"]
@@ -84,7 +126,7 @@ class ExtractionRunner:
         logger.info("Loaded %d knowledge units from %s", len(knowledge_units), cfg.vocabulary_path)
 
         # Load courses
-        courses = self._load_courses(courses_path, course_subset)
+        courses, course_prereqs = self._load_courses(courses_path, course_subset)
         logger.info("Loaded %d courses for extraction", len(courses))
 
         embedder = Embedder(cfg.embedding_model_id, cfg.pgvector_dsn)
@@ -97,6 +139,15 @@ class ExtractionRunner:
                 if force or not embedder.exists(ku.ku_id):
                     embedder.embed_and_store(ku.ku_id, "knowledge_unit", ku.label)
                 graph.write_knowledge_unit(ku)
+
+            # Write Course nodes (with course_number) and declared PREREQUISITE
+            # edges for every course up front — the inference pipeline needs
+            # these regardless of whether a course yields any concepts.
+            for course in courses:
+                graph.write_course(course)
+                graph.write_prerequisite_edges(
+                    course.course_id, course_prereqs.get(course.course_id, [])
+                )
 
         snapshot = ConceptGraphSnapshot()
         aligner = Aligner(embedder, ku_lookup, cfg, snapshot)
@@ -167,8 +218,10 @@ class ExtractionRunner:
         self,
         courses_path: Path,
         subset: Optional[list[str]],
-    ) -> list[Course]:
+    ) -> tuple[list[Course], dict[str, list[str]]]:
+        """Load courses and a course_id -> declared-prerequisite-course-ids map."""
         courses: list[Course] = []
+        prereqs: dict[str, list[str]] = {}
         with open(courses_path, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
@@ -178,7 +231,11 @@ class ExtractionRunner:
                 if subset and d["course_id"] not in subset:
                     continue
                 try:
-                    courses.append(_course_from_dict(d))
+                    course = _course_from_dict(d)
+                    courses.append(course)
+                    prereqs[course.course_id] = _collect_prereq_course_ids(
+                        d.get("declared_prerequisites")
+                    )
                 except Exception as exc:
                     logger.warning("Could not load course %s: %s", d.get("course_id"), exc)
-        return courses
+        return courses, prereqs

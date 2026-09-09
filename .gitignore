@@ -36,6 +36,7 @@ out/
 data/ingestion/output/
 data/evaluation/runs/
 data/extraction/output/
+data/inference/output/
 
 # Snapshots ARE committed (Purdue fetched once, then reused).
 # data/snapshots/ is intentionally NOT ignored.

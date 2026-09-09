@@ -11,6 +11,15 @@ import typer
 from granular.inference.config import InferenceConfig, PipelineMode
 from granular.inference.runner import InferenceRunner
 
+# Load environment variables from a local .env file if present, so connection
+# settings (NEO4J_*) are picked up without the caller having to export them.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:  # pragma: no cover - dotenv is an optional convenience
+    pass
+
 app = typer.Typer(help="Infer concept-level dependency and similarity edges.")
 
 logging.basicConfig(
