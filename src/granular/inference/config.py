@@ -32,7 +32,11 @@ class InferenceConfig:
     neo4j_password: str = "changeme"
     confidence_high: float = 0.70
     confidence_medium_low: float = 0.40
-    min_dependency_score: float = 0.35
+    # Raised from 0.35: the 0.40–0.50 band was ~77% of inferred edges and
+    # overwhelmingly false positives. Empirically 0.55 keeps held-out recall
+    # (0.483) while cutting fired course-pairs ~10x (4639 -> 441), lifting
+    # precision by roughly an order of magnitude. See PR discussion.
+    min_dependency_score: float = 0.55
     rejection_threshold_pct: float = 20.0
     model_id: str = "granular-inference/1.0.0"
     adapter_name: str = "granular-inference"
