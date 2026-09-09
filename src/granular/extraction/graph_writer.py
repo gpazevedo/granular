@@ -63,12 +63,14 @@ class GraphWriter:
                 MERGE (course:Course {course_id: $course_id})
                 SET course.course_number = $course_number,
                     course.subject_code = $subject_code,
-                    course.title = $title
+                    course.title = $title,
+                    course.level = $level
                 """,
                 course_id=course.course_id,
                 course_number=str(course.course_number),
                 subject_code=course.subject_code,
                 title=course.title,
+                level=course.level.value,
             )
 
     def write_prerequisite_edges(self, course_id: str, prereq_course_ids: list[str]) -> None:
