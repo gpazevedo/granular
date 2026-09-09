@@ -39,6 +39,9 @@ class Embedder:
         self._dsn = pgvector_dsn
         self._provider = get_provider(model_id)
         self._conn = None
+        # Cache label -> vector for the lifetime of the run so the two-pass
+        # alignment (predict_area then align) does not re-embed the same label.
+        self._embed_cache: dict[str, list[float]] = {}
 
     def _get_conn(self):
         if self._conn is None:
@@ -50,9 +53,18 @@ class Embedder:
         return self._conn
 
     def embed_text(self, text: str) -> list[float]:
-        """Embed bare label text. No metadata appended — invariant enforced here."""
+        """Embed bare label text. No metadata appended — invariant enforced here.
+
+        Results are memoised per run so repeated embeds of the same label
+        (e.g. the two-pass alignment) hit the cache instead of the API.
+        """
+        cached = self._embed_cache.get(text)
+        if cached is not None:
+            return cached
         model = get_model_name(self._model_id)
-        return self._provider.embedding(text, model)
+        vector = self._provider.embedding(text, model)
+        self._embed_cache[text] = vector
+        return vector
 
     def store(self, record: EmbeddingRecord) -> None:
         """Upsert an embedding record into pgvector."""

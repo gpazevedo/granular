@@ -1,0 +1,108 @@
+{
+  "source": "CS2023",
+  "extracted_at": "2026-09-09T00:00:00+00:00",
+  "knowledge_area_count": 19,
+  "knowledge_unit_count": 81,
+  "note": "Standards-based reconstruction of the CS2023 (ACM/IEEE-CS/AAAI) body of knowledge. Area codes and labels follow the CS2023 taxonomy; knowledge-unit lists are a faithful approximation of the public curriculum, not a verbatim parse of the source PDF.",
+  "units": [
+    { "ku_id": "CS2023-AL-KU-1", "label": "Foundations of Algorithmic Analysis", "knowledge_area": "AL", "knowledge_area_name": "Algorithms and Complexity", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-AL-KU-2", "label": "Algorithmic Strategies", "knowledge_area": "AL", "knowledge_area_name": "Algorithms and Complexity", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-AL-KU-3", "label": "Fundamental Data Structures and Algorithms", "knowledge_area": "AL", "knowledge_area_name": "Algorithms and Complexity", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-AL-KU-4", "label": "Computational Complexity and Intractability", "knowledge_area": "AL", "knowledge_area_name": "Algorithms and Complexity", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-AL-KU-5", "label": "Automata and Formal Models of Computation", "knowledge_area": "AL", "knowledge_area_name": "Algorithms and Complexity", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-AL-KU-6", "label": "Advanced Algorithmic Techniques", "knowledge_area": "AL", "knowledge_area_name": "Algorithms and Complexity", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-AR-KU-1", "label": "Digital Logic and Digital Systems", "knowledge_area": "AR", "knowledge_area_name": "Architecture and Organization", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-AR-KU-2", "label": "Machine-Level Representation of Data", "knowledge_area": "AR", "knowledge_area_name": "Architecture and Organization", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-AR-KU-3", "label": "Assembly-Level Machine Organization", "knowledge_area": "AR", "knowledge_area_name": "Architecture and Organization", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-AR-KU-4", "label": "Memory System Organization and Architecture", "knowledge_area": "AR", "knowledge_area_name": "Architecture and Organization", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-AR-KU-5", "label": "Performance and Energy Efficiency", "knowledge_area": "AR", "knowledge_area_name": "Architecture and Organization", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-CN-KU-1", "label": "Modeling and Simulation", "knowledge_area": "CN", "knowledge_area_name": "Computational Science", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-CN-KU-2", "label": "Numerical Analysis and Computation", "knowledge_area": "CN", "knowledge_area_name": "Computational Science", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-CN-KU-3", "label": "Data Analysis and Scientific Computing", "knowledge_area": "CN", "knowledge_area_name": "Computational Science", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-DS-KU-1", "label": "Sets, Relations, and Functions", "knowledge_area": "DS", "knowledge_area_name": "Discrete Structures", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-DS-KU-2", "label": "Logic and Proof Techniques", "knowledge_area": "DS", "knowledge_area_name": "Discrete Structures", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-DS-KU-3", "label": "Counting and Combinatorics", "knowledge_area": "DS", "knowledge_area_name": "Discrete Structures", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-DS-KU-4", "label": "Graphs and Trees", "knowledge_area": "DS", "knowledge_area_name": "Discrete Structures", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-DS-KU-5", "label": "Discrete Probability", "knowledge_area": "DS", "knowledge_area_name": "Discrete Structures", "tier": "core", "source": "CS2023" },
+
+    { "ku_id": "CS2023-GIT-KU-1", "label": "Fundamentals of Computer Graphics", "knowledge_area": "GIT", "knowledge_area_name": "Graphics and Interactive Techniques", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-GIT-KU-2", "label": "Geometric Modeling and Rendering", "knowledge_area": "GIT", "knowledge_area_name": "Graphics and Interactive Techniques", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-GIT-KU-3", "label": "Image Processing and Visualization", "knowledge_area": "GIT", "knowledge_area_name": "Graphics and Interactive Techniques", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-HCI-KU-1", "label": "Foundations of Human-Computer Interaction", "knowledge_area": "HCI", "knowledge_area_name": "Human-Computer Interaction", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-HCI-KU-2", "label": "User-Centered Design and Testing", "knowledge_area": "HCI", "knowledge_area_name": "Human-Computer Interaction", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-HCI-KU-3", "label": "Accessibility and Inclusive Design", "knowledge_area": "HCI", "knowledge_area_name": "Human-Computer Interaction", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-IAS-KU-1", "label": "Foundational Security Concepts", "knowledge_area": "IAS", "knowledge_area_name": "Information Assurance and Security", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-IAS-KU-2", "label": "Cryptography Foundations", "knowledge_area": "IAS", "knowledge_area_name": "Information Assurance and Security", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-IAS-KU-3", "label": "Network and System Security", "knowledge_area": "IAS", "knowledge_area_name": "Information Assurance and Security", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-IAS-KU-4", "label": "Secure Software Engineering", "knowledge_area": "IAS", "knowledge_area_name": "Information Assurance and Security", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-IM-KU-1", "label": "Information Management Concepts", "knowledge_area": "IM", "knowledge_area_name": "Information Management", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-IM-KU-2", "label": "Database Systems and the Relational Model", "knowledge_area": "IM", "knowledge_area_name": "Information Management", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-IM-KU-3", "label": "Query Languages", "knowledge_area": "IM", "knowledge_area_name": "Information Management", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-IM-KU-4", "label": "Data Modeling and Database Design", "knowledge_area": "IM", "knowledge_area_name": "Information Management", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-IM-KU-5", "label": "Transaction Processing and Distributed Data", "knowledge_area": "IM", "knowledge_area_name": "Information Management", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-IS-KU-1", "label": "Fundamentals of Artificial Intelligence", "knowledge_area": "IS", "knowledge_area_name": "Intelligent Systems", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-IS-KU-2", "label": "Search and Constraint Satisfaction", "knowledge_area": "IS", "knowledge_area_name": "Intelligent Systems", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-IS-KU-3", "label": "Knowledge Representation and Reasoning", "knowledge_area": "IS", "knowledge_area_name": "Intelligent Systems", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-IS-KU-4", "label": "Machine Learning Foundations", "knowledge_area": "IS", "knowledge_area_name": "Intelligent Systems", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-IS-KU-5", "label": "Natural Language Processing", "knowledge_area": "IS", "knowledge_area_name": "Intelligent Systems", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-MSF-KU-1", "label": "Discrete Mathematics Foundations", "knowledge_area": "MSF", "knowledge_area_name": "Mathematical and Statistical Foundations", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-MSF-KU-2", "label": "Linear Algebra", "knowledge_area": "MSF", "knowledge_area_name": "Mathematical and Statistical Foundations", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-MSF-KU-3", "label": "Probability and Statistics", "knowledge_area": "MSF", "knowledge_area_name": "Mathematical and Statistical Foundations", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-MSF-KU-4", "label": "Calculus and Continuous Mathematics", "knowledge_area": "MSF", "knowledge_area_name": "Mathematical and Statistical Foundations", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-NC-KU-1", "label": "Network Fundamentals and Architectures", "knowledge_area": "NC", "knowledge_area_name": "Networking and Communication", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-NC-KU-2", "label": "Networked Applications and Protocols", "knowledge_area": "NC", "knowledge_area_name": "Networking and Communication", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-NC-KU-3", "label": "Reliable Data Delivery and Routing", "knowledge_area": "NC", "knowledge_area_name": "Networking and Communication", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-NC-KU-4", "label": "Mobile and Wireless Networking", "knowledge_area": "NC", "knowledge_area_name": "Networking and Communication", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-OS-KU-1", "label": "Operating System Principles", "knowledge_area": "OS", "knowledge_area_name": "Operating Systems", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-OS-KU-2", "label": "Concurrency and Synchronization", "knowledge_area": "OS", "knowledge_area_name": "Operating Systems", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-OS-KU-3", "label": "Scheduling and Resource Management", "knowledge_area": "OS", "knowledge_area_name": "Operating Systems", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-OS-KU-4", "label": "Memory Management and Virtual Memory", "knowledge_area": "OS", "knowledge_area_name": "Operating Systems", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-OS-KU-5", "label": "File Systems and Storage Management", "knowledge_area": "OS", "knowledge_area_name": "Operating Systems", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-PBD-KU-1", "label": "Web Platform Development", "knowledge_area": "PBD", "knowledge_area_name": "Platform-Based Development", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-PBD-KU-2", "label": "Mobile Platform Development", "knowledge_area": "PBD", "knowledge_area_name": "Platform-Based Development", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-PBD-KU-3", "label": "Embedded and IoT Platforms", "knowledge_area": "PBD", "knowledge_area_name": "Platform-Based Development", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-PD-KU-1", "label": "Parallelism Fundamentals", "knowledge_area": "PD", "knowledge_area_name": "Parallel and Distributed Computing", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-PD-KU-2", "label": "Parallel Algorithms and Programming", "knowledge_area": "PD", "knowledge_area_name": "Parallel and Distributed Computing", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-PD-KU-3", "label": "Distributed Systems and Communication", "knowledge_area": "PD", "knowledge_area_name": "Parallel and Distributed Computing", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-PL-KU-1", "label": "Programming Language Concepts", "knowledge_area": "PL", "knowledge_area_name": "Programming Languages", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-PL-KU-2", "label": "Type Systems", "knowledge_area": "PL", "knowledge_area_name": "Programming Languages", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-PL-KU-3", "label": "Program Semantics and Analysis", "knowledge_area": "PL", "knowledge_area_name": "Programming Languages", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-PL-KU-4", "label": "Functional and Logic Programming Paradigms", "knowledge_area": "PL", "knowledge_area_name": "Programming Languages", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-PL-KU-5", "label": "Compiler and Language Implementation", "knowledge_area": "PL", "knowledge_area_name": "Programming Languages", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-SDF-KU-1", "label": "Fundamental Programming Concepts", "knowledge_area": "SDF", "knowledge_area_name": "Software Development Fundamentals", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-SDF-KU-2", "label": "Fundamental Data Structures", "knowledge_area": "SDF", "knowledge_area_name": "Software Development Fundamentals", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-SDF-KU-3", "label": "Algorithmic Problem Solving", "knowledge_area": "SDF", "knowledge_area_name": "Software Development Fundamentals", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-SDF-KU-4", "label": "Software Development Practices", "knowledge_area": "SDF", "knowledge_area_name": "Software Development Fundamentals", "tier": "core", "source": "CS2023" },
+
+    { "ku_id": "CS2023-SE-KU-1", "label": "Software Processes and Life Cycle", "knowledge_area": "SE", "knowledge_area_name": "Software Engineering", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-SE-KU-2", "label": "Requirements Engineering", "knowledge_area": "SE", "knowledge_area_name": "Software Engineering", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-SE-KU-3", "label": "Software Design and Architecture", "knowledge_area": "SE", "knowledge_area_name": "Software Engineering", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-SE-KU-4", "label": "Software Construction and Verification", "knowledge_area": "SE", "knowledge_area_name": "Software Engineering", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-SE-KU-5", "label": "Software Project Management", "knowledge_area": "SE", "knowledge_area_name": "Software Engineering", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-SE-KU-6", "label": "Software Testing and Quality Assurance", "knowledge_area": "SE", "knowledge_area_name": "Software Engineering", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-SF-KU-1", "label": "Systems Foundations and Abstractions", "knowledge_area": "SF", "knowledge_area_name": "Systems Fundamentals", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-SF-KU-2", "label": "State, State Machines, and Computation", "knowledge_area": "SF", "knowledge_area_name": "Systems Fundamentals", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-SF-KU-3", "label": "Resource Allocation and Scheduling", "knowledge_area": "SF", "knowledge_area_name": "Systems Fundamentals", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-SF-KU-4", "label": "System Performance and Reliability", "knowledge_area": "SF", "knowledge_area_name": "Systems Fundamentals", "tier": "elective", "source": "CS2023" },
+
+    { "ku_id": "CS2023-SP-KU-1", "label": "Social Context of Computing", "knowledge_area": "SP", "knowledge_area_name": "Social Issues and Professional Practice", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-SP-KU-2", "label": "Professional Ethics and Responsibilities", "knowledge_area": "SP", "knowledge_area_name": "Social Issues and Professional Practice", "tier": "core", "source": "CS2023" },
+    { "ku_id": "CS2023-SP-KU-3", "label": "Privacy, Security, and Civil Liberties", "knowledge_area": "SP", "knowledge_area_name": "Social Issues and Professional Practice", "tier": "elective", "source": "CS2023" },
+    { "ku_id": "CS2023-SP-KU-4", "label": "Intellectual Property and Law", "knowledge_area": "SP", "knowledge_area_name": "Social Issues and Professional Practice", "tier": "elective", "source": "CS2023" }
+  ]
+}

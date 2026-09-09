@@ -31,6 +31,11 @@ class ExtractionConfig:
     weight_cooccurrence: float = 0.35
     weight_level_proximity: float = 0.20
     weight_department_prior: float = 0.05
+    # Verify-stage confidence: temperature for the softmax over the top-two
+    # rerank scores (winner vs strongest rival). Lower = sharper (a small gap
+    # already yields high confidence); higher = flatter. Rerank-score gaps are
+    # small (~0.02–0.10), so a small temperature is needed for useful spread.
+    confidence_temperature: float = 0.10
 
     def __post_init__(self) -> None:
         self.vocabulary_path = Path(self.vocabulary_path)
