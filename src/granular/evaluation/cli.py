@@ -13,6 +13,15 @@ from granular.evaluation.config import EvalConfig
 from granular.evaluation.graph_loader import Neo4jGraphLoader
 from granular.evaluation.runner import EvalRunner
 
+# Load environment variables from a local .env file if present, so connection
+# settings (NEO4J_*) are picked up without the caller having to export them.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:  # pragma: no cover - dotenv is an optional convenience
+    pass
+
 app = typer.Typer(help="Evaluate the concept-graph inference pipeline.")
 
 logging.basicConfig(

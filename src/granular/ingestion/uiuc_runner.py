@@ -34,6 +34,7 @@ from granular.schema import (
 logger = logging.getLogger(__name__)
 
 UIUC_CS_URL = "https://catalog.illinois.edu/courses-of-instruction/cs/"
+UIUC_SUBJECT_URL = "https://catalog.illinois.edu/courses-of-instruction/{subject}/"
 
 
 def _level_from_number(number: str) -> ProgrammeLevel:
@@ -68,33 +69,53 @@ def _extract_prereq_refs(description: str) -> list[str]:
 
 
 class UiucRunner:
-    """UIUC static catalog ingestion."""
+    """UIUC static catalog ingestion.
 
-    def __init__(self, config: IngestConfig) -> None:
+    Fetches one or more subject catalog pages (each a single static HTML page
+    of `courseblock` divs) and merges them into one output. Defaults to CS.
+    """
+
+    def __init__(self, config: IngestConfig, subjects: list[str] | None = None) -> None:
         self._config = config
         self._summary = IngestSummary()
+        # Normalise to lowercase URL slugs; default to CS only.
+        self._subjects = [s.strip().lower() for s in (subjects or ["cs"]) if s.strip()]
+
+    def _fetch_subject(self, subject: str, ua: str) -> str | None:
+        """Fetch a single subject catalog page. Returns HTML or None on failure."""
+        url = UIUC_SUBJECT_URL.format(subject=subject)
+        logger.info("Fetching UIUC catalog: %s", url)
+        try:
+            r = httpx.get(url, headers={"User-Agent": ua}, follow_redirects=True, timeout=60)
+            r.raise_for_status()
+            return r.text
+        except httpx.HTTPStatusError as exc:
+            logger.error("HTTP %d fetching UIUC %s catalog", exc.response.status_code, subject)
+        except httpx.RequestError as exc:
+            logger.error("Request error fetching UIUC %s catalog: %s", subject, exc)
+        return None
 
     def run(self, dry_run: bool = False) -> IngestSummary:
         cfg = self._config
         cfg.output_dir.mkdir(parents=True, exist_ok=True)
-
-        # Fetch the static CS catalog page
-        logger.info("Fetching UIUC CS catalog: %s", UIUC_CS_URL)
         ua = cfg.user_agent
-        try:
-            r = httpx.get(UIUC_CS_URL, headers={"User-Agent": ua}, follow_redirects=True, timeout=60)
-            r.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            logger.error("HTTP %d fetching UIUC catalog", exc.response.status_code)
-            self._summary.finish()
-            return self._summary
-        except httpx.RequestError as exc:
-            logger.error("Request error fetching UIUC catalog: %s", exc)
-            self._summary.finish()
-            return self._summary
 
-        courses_blocks = parse_uiuc_catalog(r.text, UIUC_CS_URL)
-        logger.info("Parsed %d CS course blocks from UIUC", len(courses_blocks))
+        # Fetch and parse every requested subject page.
+        courses_blocks: list[UiucCourseBlock] = []
+        for subject in self._subjects:
+            html = self._fetch_subject(subject, ua)
+            if html is None:
+                continue
+            url = UIUC_SUBJECT_URL.format(subject=subject)
+            blocks = parse_uiuc_catalog(html, url)
+            logger.info("Parsed %d %s course blocks from UIUC", len(blocks), subject.upper())
+            courses_blocks.extend(blocks)
+
+        logger.info(
+            "Parsed %d total course blocks across %d subjects",
+            len(courses_blocks),
+            len(self._subjects),
+        )
 
         if dry_run:
             logger.info("[dry-run] Would write %d courses", len(courses_blocks))
