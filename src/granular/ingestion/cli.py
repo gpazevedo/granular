@@ -75,12 +75,17 @@ def run(
 def uiuc(
     config_path: Optional[Path] = typer.Option(None, "--config", help="TOML config file"),
     output_dir: Optional[Path] = typer.Option(None, "--output-dir", help="Output directory"),
+    subjects: str = typer.Option(
+        "cs", "--subjects", help="Comma-separated subject slugs, e.g. 'cs,math,ece,cse,stat'"
+    ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Count courses only; no output files"),
 ) -> None:
-    """Ingest UIUC CS courses from the static catalog page.
+    """Ingest UIUC courses from static subject catalog pages.
 
-    UIUC's catalog is a single static HTML page with all CS courses. No bot
-    mitigation, no pagination. This is the primary working ingestion path.
+    Each UIUC subject catalog is a single static HTML page of course blocks
+    (no bot mitigation, no pagination). Pass multiple subjects to also ingest
+    prerequisite target departments (MATH, ECE, ...) so downstream inference
+    can recover cross-subject prerequisites.
     """
     if config_path and config_path.exists():
         cfg = IngestConfig.from_toml(config_path)
@@ -90,11 +95,13 @@ def uiuc(
     if output_dir:
         cfg.output_dir = output_dir
 
-    runner = UiucRunner(cfg)
+    subject_list = [s.strip() for s in subjects.split(",") if s.strip()]
+    runner = UiucRunner(cfg, subjects=subject_list)
     summary = runner.run(dry_run=dry_run)
 
     typer.echo(
-        f"\nUIUC ingestion complete: {summary.courses_succeeded}/{summary.courses_attempted} courses, "
+        f"\nUIUC ingestion complete ({', '.join(s.upper() for s in subject_list)}): "
+        f"{summary.courses_succeeded}/{summary.courses_attempted} courses, "
         f"{summary.prereqs_structured} structured prereqs."
     )
 
