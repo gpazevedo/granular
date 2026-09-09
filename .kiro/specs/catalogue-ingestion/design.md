@@ -2,9 +2,47 @@
 
 ## Overview
 
-The ingestion pipeline is a Python package (`granular.ingestion`) with two source adapters — an HTML scraper for `catalog.purdue.edu` (Modern Campus Acalog) and an OData client for `api.purdue.io` — feeding a shared normaliser that produces canonical schema records. The pipeline is a CLI tool (`granular-ingest`) with no server process.
+The ingestion pipeline is a Python package (`granular.ingestion`) that feeds a
+shared normaliser producing canonical schema records. The pipeline is a CLI tool
+(`granular-ingest`) with no server process.
 
-All network I/O is isolated in adapter classes. The normaliser is pure Python with no network calls. This boundary makes the normaliser unit-testable without hitting the network.
+All network I/O is isolated in adapter classes. The normaliser is pure Python
+with no network calls. This boundary makes the normaliser unit-testable without
+hitting the network.
+
+### Source reality (revised after live investigation)
+
+The original design assumed the Modern Campus Acalog HTML catalogue
+(`catalog.purdue.edu`) as the primary source, with purdue.io OData as a
+secondary cross-check. Live investigation invalidated that assumption:
+
+- **Acalog HTML is behind bot mitigation.** `catalog.purdue.edu/content.php`
+  returns empty HTTP 202 responses to any plain HTTP client (no body, regardless
+  of User-Agent or retries). It requires a headless browser to solve a
+  JS/cookie challenge — out of scope for a "loud failures, no cat-and-mouse"
+  research artefact.
+- **purdue.io OData `Description` is unusable.** The API returns all ~1,931 CS
+  courses with number, title, and credit hours, but its `Description` field
+  holds scheduling notes ("Evening Exams Required."), not academic prose.
+- **CS canonical syllabus pages** (`www.cs.purdue.edu/...canonical/csNNN.html`)
+  were reachable, but only ~6 courses had real content — the core sequence
+  (CS 180–252). Zero graduate courses had descriptions.
+
+After testing multiple institutions, **University of Illinois Urbana-Champaign
+(UIUC)** was selected as the data source:
+
+- **Static, reachable pages.** `catalog.illinois.edu/courses-of-instruction/cs/`
+  returns 221KB of HTML with 161 CS course descriptions — no bot mitigation.
+- **Rich content.** Each course has a title, credit hours, description, and
+  prerequisites (in prose within the description).
+- **Simple structure.** Each course is a `<div class="courseblock">` with
+  `<p class="courseblocktitle">` (number + title + credits) and
+  `<p class="courseblockdesc">` (description). No Acalog; no JavaScript.
+
+This is a static Academic Catalog, not Modern Campus Acalog. The adapter is
+simpler than the original Acalog design: fetch one page, parse all course
+blocks, extract fields, normalise. Prerequisite extraction uses the existing
+`prereq_parser` to handle prose like "Prerequisite: CS 124 or CS 125."
 
 ---
 
