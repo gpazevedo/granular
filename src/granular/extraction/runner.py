@@ -117,12 +117,22 @@ class ExtractionRunner:
             if dry_run:
                 continue
 
-            # Determine co-occurring concept areas (best-effort: none on first pass)
-            co_areas: list[str] = []
+            # Pass 1: predict the knowledge area of each concept (no side effects),
+            # so the co-occurrence signal can be seeded from sibling concepts.
+            predicted_areas: list[Optional[str]] = [
+                aligner.predict_area(raw, course) for raw in raw_concepts
+            ]
 
-            for raw in raw_concepts:
+            for idx, raw in enumerate(raw_concepts):
                 if not force and graph.concept_exists(course.course_id, raw.label):
                     continue
+                # Co-occurring areas = predicted areas of the OTHER concepts in
+                # this course (a concept should not reinforce itself).
+                co_areas = [
+                    area
+                    for j, area in enumerate(predicted_areas)
+                    if j != idx and area
+                ]
                 concept = aligner.align(raw, course, co_areas)
                 all_concepts.append(concept)
                 confidences.append(concept.confidence)

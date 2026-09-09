@@ -226,13 +226,26 @@ def verify(
 ) -> AlignmentResult:
 ```
 
-Selects the top-ranked surviving candidate. Computes confidence as:
+Selects the top-ranked surviving candidate. Confidence is the winner's
+temperature-scaled softmax probability against its strongest rival (the top
+two rerank scores) — a margin of separation from the closest competitor:
 
 ```text
-confidence = rerank_score_of_winner / rerank_score_of_winner + rerank_score_of_runner_up
+confidence = 1 / (1 + exp((score_runner_up - score_winner) / T))
 ```
 
-(If only one candidate survives, confidence = `rerank_score_of_winner` normalised to [0,1] by sigmoid.)
+`T` is `confidence_temperature` (default 0.10). This ranges in [0.5, 1.0]:
+a clear winner (large gap to the runner-up) approaches 1.0, while a near-tie
+approaches 0.5. Using the top two rather than the whole field avoids diluting
+the winner across many similar candidates — with `top_k = 10`, a softmax over
+all candidates crushes even a clear winner toward `1/k`.
+
+This replaced an earlier share-of-top-two ratio
+(`winner / (winner + runner_up)`), which was structurally pinned near 0.5 and
+did not reflect alignment quality.
+
+(If only one candidate survives, confidence = `rerank_score_of_winner`
+normalised to [0,1] by sigmoid.)
 
 If confidence < `min_confidence` (default 0.3): `LOW_CONFIDENCE_UNALIGNED`.
 Otherwise: `ALIGNED` with `knowledge_unit_id` and `confidence`.

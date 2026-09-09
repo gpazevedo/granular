@@ -28,15 +28,18 @@ Rules:
   to be a distinct learning outcome (e.g. "maximum likelihood estimation",
   "binary search trees", "TCP/IP protocol stack"), not broad ("algorithms").
 - Do NOT infer from the course number, title, or department. Use only the description text.
-- Return a JSON array of objects with a single "label" string field.
-- If no concepts can be extracted, return an empty array [].
+- Return a JSON object with a single key "concepts" whose value is an array of
+  objects, each having a single "label" string field.
+- If no concepts can be extracted, return {"concepts": []}.
 
 Example output:
-[
-  {"label": "binary search trees"},
-  {"label": "heap sort"},
-  {"label": "amortized complexity analysis"}
-]
+{
+  "concepts": [
+    {"label": "binary search trees"},
+    {"label": "heap sort"},
+    {"label": "amortized complexity analysis"}
+  ]
+}
 """
 
 
@@ -45,6 +48,48 @@ class RawConcept:
     label: str
     source_course_id: str
     model_id: str
+
+
+# Keys the model commonly uses to hold the concept array when it wraps the
+# response in an object (as required by response_format=json_object).
+_LIST_KEYS = ("concepts", "labels", "items", "results", "concept_list")
+
+
+def _coerce_concept_list(parsed: object) -> list | None:
+    """Extract the list of concept items from a parsed JSON payload.
+
+    Handles the shapes an LLM realistically returns under json_object mode:
+      - {"concepts": [...]}  (the requested shape, or any known list key)
+      - [...]                (a bare array, if the model ignores the wrapper)
+      - {"label": "x"}       (a single concept object, not wrapped in a list)
+      - {"...": [...]}       (some other key holding the only list value)
+
+    Returns the list of items, or None if no list-like content can be found.
+    """
+    if isinstance(parsed, list):
+        return parsed
+
+    if isinstance(parsed, dict):
+        # Preferred: a known key holding an array.
+        for key in _LIST_KEYS:
+            val = parsed.get(key)
+            if isinstance(val, list):
+                return val
+
+        # A single concept object returned unwrapped, e.g. {"label": "x"}.
+        if "label" in parsed and isinstance(parsed["label"], str):
+            return [parsed]
+
+        # Fallback: the only list value present under any key.
+        list_values = [v for v in parsed.values() if isinstance(v, list)]
+        if len(list_values) == 1:
+            return list_values[0]
+
+        # An empty object legitimately means "no concepts".
+        if not parsed:
+            return []
+
+    return None
 
 
 class ConceptExtractor:
@@ -73,16 +118,16 @@ class ConceptExtractor:
                 temperature=0.0,
                 response_format={"type": "json_object"},
             )
-            raw_json = response or "[]"
-            # The model may return {"concepts": [...]} or just [...]
+            raw_json = response or "{}"
             parsed = json.loads(raw_json)
-            if isinstance(parsed, dict):
-                items = parsed.get("concepts", parsed.get("labels", list(parsed.values())[0] if parsed else []))
-            else:
-                items = parsed
+            items = _coerce_concept_list(parsed)
 
-            if not isinstance(items, list):
-                logger.warning("LLM returned non-list for %s; got %r", course_id, type(items))
+            if items is None:
+                logger.warning(
+                    "LLM returned unparseable concept payload for %s; got %r",
+                    course_id,
+                    type(parsed),
+                )
                 return []
 
             concepts: list[RawConcept] = []

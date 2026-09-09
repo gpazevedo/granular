@@ -13,6 +13,16 @@ from granular.extraction.bootstrap.seed_writer import build_knowledge_units, wri
 from granular.extraction.config import ExtractionConfig
 from granular.extraction.runner import ExtractionRunner
 
+# Load environment variables from a local .env file if present, so credentials
+# and connection settings (OPENAI_API_KEY, NEO4J_*, PGVECTOR_DSN, ...) are
+# available without the caller having to export them manually.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:  # pragma: no cover - dotenv is an optional convenience
+    pass
+
 app = typer.Typer(help="Extract concepts from Purdue CS courses and align to CS2023.")
 
 logging.basicConfig(

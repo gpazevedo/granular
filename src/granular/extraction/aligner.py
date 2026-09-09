@@ -41,6 +41,34 @@ class Aligner:
         self._config = config
         self._snapshot = snapshot or ConceptGraphSnapshot()
 
+    def predict_area(self, raw: RawConcept, course: Course) -> Optional[str]:
+        """First-pass, side-effect-free prediction of a concept's knowledge area.
+
+        Runs retrieve + rerank (with no co-occurrence signal) and returns the
+        knowledge area of the top candidate. Does NOT run reject/verify, does
+        NOT record anything in the snapshot, and does NOT write to the graph.
+
+        Used to seed the co-occurrence signal for the real alignment pass.
+        Returns None if no candidate is found or on any failure.
+        """
+        try:
+            candidates = retrieve(raw, self._embedder, self._config.top_k)
+            ranked = rerank(
+                raw, candidates, course, [], self._ku_lookup, self._config
+            )
+            if not ranked:
+                return None
+            top_ku = self._ku_lookup.get(ranked[0].ku_id)
+            return top_ku.knowledge_area if top_ku else None
+        except Exception as exc:
+            logger.debug(
+                "Area prediction failed for concept %r (%s): %s",
+                raw.label,
+                raw.source_course_id,
+                exc,
+            )
+            return None
+
     def align(
         self,
         raw: RawConcept,
