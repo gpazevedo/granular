@@ -36,6 +36,9 @@ out/
 data/ingestion/output/
 data/evaluation/runs/
 
+# Snapshots ARE committed (Purdue fetched once, then reused).
+# data/snapshots/ is intentionally NOT ignored.
+
 # Fetch cache (generated)
 fetch_cache.db
 
