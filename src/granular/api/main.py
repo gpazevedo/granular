@@ -7,6 +7,15 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Load environment variables from a local .env file if present, so connection
+# settings (NEO4J_*, PGVECTOR_DSN, OPENAI_*) are picked up automatically.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:  # pragma: no cover - dotenv is an optional convenience
+    pass
+
 from granular.api.config import APIConfig
 from granular.api.routers import discover
 
