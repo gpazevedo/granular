@@ -11,6 +11,8 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 
+from granular.extraction.llm import get_model_name, get_provider
+
 logger = logging.getLogger(__name__)
 
 EMBEDDING_DIM = 1536  # text-embedding-3-small default
@@ -26,22 +28,17 @@ class EmbeddingRecord:
 
 
 class Embedder:
-    """Wraps the OpenAI embedding API and stores results in pgvector."""
+    """Wraps the embedding API and stores results in PostgreSQL.
+
+    Note: Anthropic does not provide embeddings. If using Claude for extraction,
+    embeddings must come from OpenAI (text-embedding-3-small) configured separately.
+    """
 
     def __init__(self, model_id: str, pgvector_dsn: str) -> None:
         self._model_id = model_id
         self._dsn = pgvector_dsn
-        self._client = None
+        self._provider = get_provider(model_id)
         self._conn = None
-
-    def _get_client(self):
-        if self._client is None:
-            try:
-                from openai import OpenAI
-                self._client = OpenAI()
-            except ImportError:
-                raise ImportError("openai package required: pip install openai")
-        return self._client
 
     def _get_conn(self):
         if self._conn is None:
@@ -54,11 +51,8 @@ class Embedder:
 
     def embed_text(self, text: str) -> list[float]:
         """Embed bare label text. No metadata appended — invariant enforced here."""
-        client = self._get_client()
-        # Strip the model prefix if present (e.g. "openai/text-embedding-3-small")
-        model = self._model_id.split("/")[-1]
-        response = client.embeddings.create(input=text, model=model)
-        return response.data[0].embedding
+        model = get_model_name(self._model_id)
+        return self._provider.embedding(text, model)
 
     def store(self, record: EmbeddingRecord) -> None:
         """Upsert an embedding record into pgvector."""

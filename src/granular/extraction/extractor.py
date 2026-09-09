@@ -14,6 +14,8 @@ import json
 import logging
 from dataclasses import dataclass
 
+from granular.extraction.llm import get_model_name, get_provider
+
 logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = """\
@@ -50,16 +52,7 @@ class ConceptExtractor:
 
     def __init__(self, model_id: str) -> None:
         self._model_id = model_id
-        self._client = None
-
-    def _get_client(self):
-        if self._client is None:
-            try:
-                from openai import OpenAI
-                self._client = OpenAI()
-            except ImportError:
-                raise ImportError("openai package required: pip install openai")
-        return self._client
+        self._provider = get_provider(model_id)
 
     def extract(self, course_id: str, description: str) -> list[RawConcept]:
         """Extract concepts from a course description.
@@ -70,20 +63,17 @@ class ConceptExtractor:
             logger.info("Skipping extraction for %s: description too short", course_id)
             return []
 
-        client = self._get_client()
-        model = self._model_id.split("/")[-1]
+        model = get_model_name(self._model_id)
 
         try:
-            response = client.chat.completions.create(
+            response = self._provider.chat_completion(
+                system=_SYSTEM_PROMPT,
+                user_message=description.strip(),
                 model=model,
-                messages=[
-                    {"role": "system", "content": _SYSTEM_PROMPT},
-                    {"role": "user", "content": description.strip()},
-                ],
-                response_format={"type": "json_object"},
                 temperature=0.0,
+                response_format={"type": "json_object"},
             )
-            raw_json = response.choices[0].message.content or "[]"
+            raw_json = response or "[]"
             # The model may return {"concepts": [...]} or just [...]
             parsed = json.loads(raw_json)
             if isinstance(parsed, dict):

@@ -57,6 +57,7 @@ class ExtractionConfig:
             "GRANULAR_TOP_K": ("top_k", int),
             "OPENAI_LLM_MODEL": "llm_model_id",
             "OPENAI_EMBEDDING_MODEL": "embedding_model_id",
+            "ANTHROPIC_LLM_MODEL": "llm_model_id",  # Override with Anthropic if set
             "PGVECTOR_DSN": "pgvector_dsn",
             "NEO4J_URI": "neo4j_uri",
             "NEO4J_USER": "neo4j_user",
@@ -71,4 +72,13 @@ class ExtractionConfig:
                 setattr(cfg, fname, coerce(val))
             else:
                 setattr(cfg, field_spec, val)
+        
+        # If Anthropic model is set, wrap it with provider prefix
+        if os.environ.get("ANTHROPIC_LLM_MODEL"):
+            cfg.llm_model_id = f"anthropic/{os.environ['ANTHROPIC_LLM_MODEL']}"
+        
+        # Ensure embedding model has provider prefix
+        if cfg.embedding_model_id and "/" not in cfg.embedding_model_id:
+            cfg.embedding_model_id = f"openai/{cfg.embedding_model_id}"
+        
         return cfg
