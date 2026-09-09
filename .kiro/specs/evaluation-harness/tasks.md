@@ -3,6 +3,7 @@
 ## Prerequisites
 
 These specs must be complete before any task in this spec can be implemented:
+
 - `canonical-schema` — `InferredEdge`, `DeclaredEdge`, `SchemaValidationError`
 - `concept-graph-inference` — `ConceptGraphSnapshot`, `PipelineMode` flag, `InferenceSummary`
 
