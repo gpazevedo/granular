@@ -74,16 +74,17 @@ class InferenceRunner:
         self._summary.low_confidence_similarity = low_conf
         confidences.extend(e.confidence for e in sim_edges)
 
-        # --- Write to graph ---
+        # --- Write to graph (bulk UNWIND, one transaction per batch) ---
         if not dry_run:
-            for edge in dep_edges:
-                graph.write_inferred_edge(edge)
-            for edge in sim_edges:
-                graph.write_inferred_edge(edge)
-            for rej in rejections:
-                graph.write_rejected_edge(
-                    rej.from_id, rej.to_id, rej.score, rej.reason, self._summary.run_id
-                )
+            graph.write_inferred_edges(dep_edges)
+            graph.write_inferred_edges(sim_edges)
+            graph.write_rejected_edges(
+                [
+                    {"from_id": r.from_id, "to_id": r.to_id, "score": r.score, "reason": r.reason}
+                    for r in rejections
+                ],
+                self._summary.run_id,
+            )
 
         # --- Knowledge area coverage ---
         self._summary.knowledge_area_coverage = self._build_ka_coverage(
