@@ -11,6 +11,9 @@ from __future__ import annotations
 from typing import Protocol
 
 from granular.api.models.responses import (
+    CourseConcept,
+    CourseDetailResponse,
+    CoursePrerequisite,
     OverlapConcept,
     OverlapResponse,
     ReadinessResponse,
@@ -26,6 +29,7 @@ class AdvisoryGraphProtocol(Protocol):
     def get_unlocks(self, course_id: str) -> list[dict]: ...
     def course_concepts(self, course_id: str) -> list[dict]: ...
     def covered_ku_ids(self, course_ids: list[str]) -> set[str]: ...
+    def course_detail(self, course_id: str) -> dict | None: ...
 
 
 class AdvisoryService:
@@ -78,6 +82,61 @@ class AdvisoryService:
             for u in self._graph.get_unlocks(course_id)
         ]
         return UnlockResponse(course_id=course_id, unlocks=unlocked)
+
+    def course_detail(self, course_id: str) -> CourseDetailResponse:
+        """Full detail for one course: description (declared), covered CS2023
+        concepts (inferred), declared prerequisites, and what it unlocks.
+        """
+        detail = self._graph.course_detail(course_id)
+        if detail is None:
+            return CourseDetailResponse(
+                course_id=course_id,
+                course_number="",
+                subject_code="",
+                title="",
+                level="",
+                description="",
+                concepts=[],
+                prerequisites=[],
+                unlocks=[],
+                status="course_not_found",
+                status_message=f"No course '{course_id}' is present in the catalogue graph.",
+            )
+
+        concepts = [
+            CourseConcept(
+                ku_id=c["ku_id"],
+                label=c["label"],
+                knowledge_area=c["knowledge_area"],
+                confidence=round(float(c.get("confidence") or 0.0), 3),
+            )
+            for c in detail["concepts"]
+        ]
+        # Sort concepts by confidence desc for a sensible display order.
+        concepts.sort(key=lambda c: c.confidence, reverse=True)
+
+        prerequisites = [
+            CoursePrerequisite(
+                course_id=p["course_id"], title=p.get("title", ""), verbatim=p.get("verbatim", "")
+            )
+            for p in self._graph.get_prerequisites(course_id)
+        ]
+        unlocks = [
+            UnlockedCourse(course_id=u["course_id"], title=u.get("title", ""))
+            for u in self._graph.get_unlocks(course_id)
+        ]
+
+        return CourseDetailResponse(
+            course_id=detail["course_id"],
+            course_number=detail["course_number"],
+            subject_code=detail["subject_code"],
+            title=detail["title"],
+            level=detail["level"],
+            description=detail["description"],
+            concepts=concepts,
+            prerequisites=prerequisites,
+            unlocks=unlocks,
+        )
 
     def overlap(self, course_id: str, completed_courses: list[str]) -> OverlapResponse:
         """Which of the target course's concepts are already covered by the

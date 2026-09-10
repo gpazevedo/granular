@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from granular.api.dependencies import get_advisory_service
 from granular.api.models.responses import (
+    CourseDetailResponse,
     OverlapRequest,
     OverlapResponse,
     ReadinessRequest,
@@ -48,6 +49,19 @@ def unlock(
     if not course_id or not course_id.strip():
         raise HTTPException(status_code=400, detail="course_id must not be empty")
     return service.unlock(course_id.strip())
+
+
+@router.get("/course/{course_id}", response_model=CourseDetailResponse)
+def course_detail(
+    course_id: str,
+    service: AdvisoryService = Depends(get_advisory_service),
+) -> CourseDetailResponse:
+    """Full detail for one course: description (declared), covered CS2023
+    concepts (inferred), declared prerequisites, and what it unlocks.
+    """
+    if not course_id or not course_id.strip():
+        raise HTTPException(status_code=400, detail="course_id must not be empty")
+    return service.course_detail(course_id.strip())
 
 
 @router.post("/overlap", response_model=OverlapResponse)

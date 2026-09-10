@@ -4,6 +4,7 @@ import { useState } from "react";
 import { discover } from "@/lib/api";
 import type { DiscoverResponse, Level } from "@/lib/types";
 import { CourseCard } from "./components/CourseCard";
+import { CourseDetail } from "./components/CourseDetail";
 import { CombinationCard } from "./components/CombinationCard";
 import { ThinCoverageAlert } from "./components/ThinCoverageAlert";
 import { NoResultsMessage } from "./components/NoResultsMessage";
@@ -16,6 +17,7 @@ export default function DiscoverPage() {
   const [response, setResponse] = useState<DiscoverResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   async function onSearch() {
     if (!query.trim()) {
@@ -83,7 +85,7 @@ export default function DiscoverPage() {
           <div>
             <h2 className="section-title">Courses</h2>
             {response!.courses.map((c) => (
-              <CourseCard key={c.course_id} course={c} />
+              <CourseCard key={c.course_id} course={c} onSelect={setSelectedCourseId} />
             ))}
           </div>
           <div>
@@ -99,6 +101,14 @@ export default function DiscoverPage() {
             )}
           </div>
         </div>
+      )}
+
+      {selectedCourseId && (
+        <CourseDetail
+          courseId={selectedCourseId}
+          resolvedKuIds={response?.resolved_kus.map((k) => k.ku_id) ?? []}
+          onClose={() => setSelectedCourseId(null)}
+        />
       )}
     </div>
   );

@@ -64,13 +64,15 @@ class GraphWriter:
                 SET course.course_number = $course_number,
                     course.subject_code = $subject_code,
                     course.title = $title,
-                    course.level = $level
+                    course.level = $level,
+                    course.description = $description
                 """,
                 course_id=course.course_id,
                 course_number=str(course.course_number),
                 subject_code=course.subject_code,
                 title=course.title,
                 level=course.level.value,
+                description=course.description or "",
             )
 
     def write_prerequisite_edges(

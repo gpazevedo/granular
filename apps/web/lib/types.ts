@@ -54,6 +54,39 @@ export interface ThinCoverageNote {
   label: string;
 }
 
+export interface CourseConcept {
+  ku_id: string;
+  label: string;
+  knowledge_area: string;
+  confidence: number;
+}
+
+export interface CoursePrerequisite {
+  course_id: string;
+  title: string;
+  verbatim: string;
+}
+
+export interface UnlockedCourse {
+  course_id: string;
+  title: string;
+}
+
+export interface CourseDetailResponse {
+  course_id: string;
+  course_number: string;
+  subject_code: string;
+  title: string;
+  level: string;
+  description: string;
+  concepts: CourseConcept[];
+  prerequisites: CoursePrerequisite[];
+  unlocks: UnlockedCourse[];
+  evidence_basis: "mixed";
+  status: "ok" | "course_not_found";
+  status_message?: string | null;
+}
+
 export type DiscoverStatus = "ok" | "no_concepts_resolved" | "no_courses_found";
 
 export interface DiscoverResponse {

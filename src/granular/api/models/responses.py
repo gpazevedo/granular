@@ -118,6 +118,36 @@ class UnlockResponse(BaseModel):
     status_message: Optional[str] = None
 
 
+# --- Course detail -----------------------------------------------------------
+
+class CourseConcept(BaseModel):
+    ku_id: str
+    label: str
+    knowledge_area: str
+    confidence: float
+
+
+class CoursePrerequisite(BaseModel):
+    course_id: str
+    title: str
+    verbatim: str
+
+
+class CourseDetailResponse(BaseModel):
+    course_id: str
+    course_number: str
+    subject_code: str
+    title: str
+    level: str
+    description: str
+    concepts: list[CourseConcept]          # covered CS2023 knowledge units
+    prerequisites: list[CoursePrerequisite]  # declared
+    unlocks: list[UnlockedCourse]          # declared, transitive
+    evidence_basis: Literal["mixed"] = "mixed"  # description declared; concepts inferred
+    status: Literal["ok", "course_not_found"] = "ok"
+    status_message: Optional[str] = None
+
+
 # --- Overlap (REQ-AQ-08) -----------------------------------------------------
 
 OVERLAP_CAVEAT = (
