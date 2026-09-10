@@ -24,6 +24,10 @@ class APIConfig:
     max_combination_size: int = 3
     resolution_min_score: float = 0.3
     resolution_top_k: int = 15
+    # Only concepts aligned at or above this confidence contribute to course
+    # matching. Defence-in-depth alongside LLM alignment verification: filters
+    # weak/borderline alignments so they don't inflate a course's relevance.
+    match_min_confidence: float = 0.5
     entitlement_patterns: list[str] = field(
         default_factory=lambda: [
             r"\bexempt\b",

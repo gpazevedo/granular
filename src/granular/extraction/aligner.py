@@ -13,7 +13,11 @@ from granular.extraction.extractor import RawConcept
 from granular.extraction.pipeline.reject import ConceptGraphSnapshot, reject
 from granular.extraction.pipeline.rerank import _normalise_course_level, rerank
 from granular.extraction.pipeline.retrieve import retrieve
-from granular.extraction.pipeline.verify import verify
+from granular.extraction.pipeline.verify import (
+    AlignmentResult,
+    llm_confirms_alignment,
+    verify,
+)
 from granular.schema import (
     AlignmentStatus,
     Authority,
@@ -40,6 +44,13 @@ class Aligner:
         self._ku_lookup = ku_lookup
         self._config = config
         self._snapshot = snapshot or ConceptGraphSnapshot()
+        self._verify_provider = None
+
+    def _get_verify_provider(self):
+        if self._verify_provider is None:
+            from granular.extraction.llm import get_provider
+            self._verify_provider = get_provider(self._config.alignment_verify_model_id)
+        return self._verify_provider
 
     def predict_area(self, raw: RawConcept, course: Course) -> Optional[str]:
         """First-pass, side-effect-free prediction of a concept's knowledge area.
@@ -104,6 +115,36 @@ class Aligner:
 
             # Stage 4: Verify
             alignment = verify(reject_result.surviving, self._config)
+
+            # Stage 4b: LLM verification — reject embedding false positives
+            # (e.g. "construction of solar cars" -> "Software Construction").
+            if (
+                alignment.status == AlignmentStatus.ALIGNED
+                and alignment.knowledge_unit_id
+                and self._config.alignment_verify_model_id
+            ):
+                ku = self._ku_lookup.get(alignment.knowledge_unit_id)
+                if ku is not None:
+                    from granular.extraction.llm import get_model_name
+
+                    confirmed = llm_confirms_alignment(
+                        raw.label,
+                        ku.label,
+                        self._get_verify_provider(),
+                        get_model_name(self._config.alignment_verify_model_id),
+                    )
+                    if not confirmed:
+                        logger.debug(
+                            "LLM rejected alignment: %r -> %s (%s)",
+                            raw.label,
+                            ku.label,
+                            alignment.knowledge_unit_id,
+                        )
+                        alignment = AlignmentResult(
+                            knowledge_unit_id=None,
+                            confidence=alignment.confidence,
+                            status=AlignmentStatus.LOW_CONFIDENCE_UNALIGNED,
+                        )
 
             # Record successful alignment in the snapshot
             if alignment.status == AlignmentStatus.ALIGNED and alignment.knowledge_unit_id:

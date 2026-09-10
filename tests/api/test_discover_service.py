@@ -30,7 +30,7 @@ class FakeGraph:
         self._declared = declared or set()
         self._labels = labels or {}
 
-    def match_courses(self, ku_ids, level):
+    def match_courses(self, ku_ids, level, min_confidence=0.0):
         if level == "all":
             return self._matches
         return [m for m in self._matches if m.level == level]

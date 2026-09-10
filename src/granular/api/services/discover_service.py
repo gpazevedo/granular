@@ -35,7 +35,9 @@ class ResolverProtocol(Protocol):
 
 
 class GraphProtocol(Protocol):
-    def match_courses(self, ku_ids: list[str], level: str) -> list[CourseMatch]: ...
+    def match_courses(
+        self, ku_ids: list[str], level: str, min_confidence: float = 0.0
+    ) -> list[CourseMatch]: ...
     def declared_prereqs_between(self, course_ids: list[str]) -> set[tuple[str, str]]: ...
     def thin_coverage_units(self, ku_ids: list[str], min_courses: int) -> list[str]: ...
     def ku_labels(self, ku_ids: list[str]) -> dict[str, tuple[str, str]]: ...
@@ -76,7 +78,7 @@ class DiscoverService:
             for k in ku_ids
         ]
 
-        matches = self._graph.match_courses(ku_ids, level)
+        matches = self._graph.match_courses(ku_ids, level, self._config.match_min_confidence)
 
         if not matches:
             return DiscoverResponse(
