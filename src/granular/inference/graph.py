@@ -75,43 +75,107 @@ class GraphClient:
                 prereqs.add((row["course"], row["prereq"]))
         return prereqs
 
+    @staticmethod
+    def _rel_type(edge: InferredEdge) -> str:
+        return (
+            "DEPENDS_ON"
+            if edge.relationship_type.value == "concept_dependency"
+            else "SIMILAR_TO"
+        )
+
+    @staticmethod
+    def _edge_row(edge: InferredEdge) -> dict:
+        return {
+            "from_id": edge.from_id,
+            "to_id": edge.to_id,
+            "edge_id": edge.edge_id,
+            "confidence": edge.confidence,
+            "model_id": edge.model_id,
+            "source_url": edge.provenance.source_url,
+            "adapter_name": edge.provenance.adapter_name,
+            "adapter_version": edge.provenance.adapter_version,
+        }
+
     def write_inferred_edge(self, edge: InferredEdge) -> None:
+        """Write a single inferred edge. Prefer write_inferred_edges for bulk."""
+        self.write_inferred_edges([edge])
+
+    def write_inferred_edges(self, edges: list[InferredEdge], batch_size: int = 5000) -> int:
+        """Bulk-write inferred edges using UNWIND, one transaction per batch.
+
+        Replaces the previous one-session-per-edge approach, which made large
+        inference runs take tens of minutes. Edges are grouped by relationship
+        type (the type is fixed in the query text) and written in chunks.
+
+        Returns the number of edges written.
+        """
+        if not edges:
+            return 0
+
+        by_type: dict[str, list[dict]] = {}
+        for edge in edges:
+            by_type.setdefault(self._rel_type(edge), []).append(self._edge_row(edge))
+
         driver = self._get_driver()
-        rel_type = "DEPENDS_ON" if edge.relationship_type.value == "concept_dependency" else "SIMILAR_TO"
+        written = 0
         with driver.session() as session:
-            session.run(
-                f"""
-                MATCH (a:Concept {{concept_id: $from_id}})
-                MATCH (b:Concept {{concept_id: $to_id}})
-                MERGE (a)-[r:{rel_type} {{edge_id: $edge_id}}]->(b)
-                SET r.confidence = $confidence,
-                    r.model_id = $model_id,
-                    r.source_url = $source_url,
-                    r.adapter_name = $adapter_name,
-                    r.adapter_version = $adapter_version
-                """,
-                from_id=edge.from_id,
-                to_id=edge.to_id,
-                edge_id=edge.edge_id,
-                confidence=edge.confidence,
-                model_id=edge.model_id,
-                source_url=edge.provenance.source_url,
-                adapter_name=edge.provenance.adapter_name,
-                adapter_version=edge.provenance.adapter_version,
-            )
+            for rel_type, rows in by_type.items():
+                query = f"""
+                    UNWIND $rows AS row
+                    MATCH (a:Concept {{concept_id: row.from_id}})
+                    MATCH (b:Concept {{concept_id: row.to_id}})
+                    MERGE (a)-[r:{rel_type} {{edge_id: row.edge_id}}]->(b)
+                    SET r.confidence = row.confidence,
+                        r.model_id = row.model_id,
+                        r.source_url = row.source_url,
+                        r.adapter_name = row.adapter_name,
+                        r.adapter_version = row.adapter_version
+                """
+                for start in range(0, len(rows), batch_size):
+                    chunk = rows[start : start + batch_size]
+                    session.execute_write(lambda tx, c=chunk: tx.run(query, rows=c).consume())
+                    written += len(chunk)
+        return written
 
     def write_rejected_edge(self, from_id: str, to_id: str, score: float, reason: str, run_id: str) -> None:
+        """Write a single rejected-edge record. Prefer write_rejected_edges for bulk."""
+        self.write_rejected_edges(
+            [{"from_id": from_id, "to_id": to_id, "score": score, "reason": reason}],
+            run_id,
+        )
+
+    def write_rejected_edges(self, rows: list[dict], run_id: str, batch_size: int = 5000) -> int:
+        """Bulk-write RejectedInferredEdge records using UNWIND.
+
+        Each row is {from_id, to_id, score, reason}.
+        """
+        if not rows:
+            return 0
+        payload = [
+            {
+                "from_id": r["from_id"],
+                "to_id": r["to_id"],
+                "score": r["score"],
+                "reason": r["reason"],
+                "run_id": run_id,
+            }
+            for r in rows
+        ]
         driver = self._get_driver()
+        query = """
+            UNWIND $rows AS row
+            CREATE (:RejectedInferredEdge {
+                from_id: row.from_id, to_id: row.to_id, score: row.score,
+                rejection_reason: row.reason, run_id: row.run_id
+            })
+        """
+        written = 0
         with driver.session() as session:
-            session.run(
-                """
-                CREATE (:RejectedInferredEdge {
-                    from_id: $from_id, to_id: $to_id, score: $score,
-                    rejection_reason: $reason, run_id: $run_id
-                })
-                """,
-                from_id=from_id, to_id=to_id, score=score, reason=reason, run_id=run_id,
-            )
+            for start in range(0, len(payload), batch_size):
+                chunk = payload[start : start + batch_size]
+                session.execute_write(lambda tx, c=chunk: tx.run(query, rows=c).consume())
+                written += len(chunk)
+        return written
 
     def get_existing_inferred_dependencies(self) -> list[tuple[str, str]]:
         driver = self._get_driver()
