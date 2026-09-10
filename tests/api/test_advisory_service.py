@@ -10,7 +10,7 @@ from granular.api.services.advisory_service import AdvisoryService
 
 
 class FakeGraph:
-    def __init__(self, prereqs=None, unlocks=None, existing=None, concepts=None, covered=None) -> None:
+    def __init__(self, prereqs=None, unlocks=None, existing=None, concepts=None, covered=None, details=None) -> None:
         # prereqs: {course_id: [{"course_id","title","verbatim"}, ...]}
         self._prereqs = prereqs or {}
         # unlocks: {course_id: [{"course_id","title"}, ...]}
@@ -19,9 +19,11 @@ class FakeGraph:
         self._concepts = concepts or {}
         # covered: {course_id: {ku_id, ...}} — KUs a completed course covers
         self._covered = covered or {}
+        # details: {course_id: {course node fields + "concepts": [...]}}
+        self._details = details or {}
         # existing: set of known course ids (defaults to keys of the maps)
         self._existing = existing if existing is not None else (
-            set(self._prereqs) | set(self._unlocks) | set(self._concepts)
+            set(self._prereqs) | set(self._unlocks) | set(self._concepts) | set(self._details)
         )
 
     def course_exists(self, course_id: str) -> bool:
@@ -41,6 +43,9 @@ class FakeGraph:
         for c in course_ids:
             result |= self._covered.get(c, set())
         return result
+
+    def course_detail(self, course_id: str):
+        return self._details.get(course_id)
 
 
 def _client(graph: FakeGraph) -> TestClient:
@@ -163,6 +168,47 @@ class TestOverlap:
         assert r.status == "course_not_found"
 
 
+# --- Course detail -----------------------------------------------------------
+
+class TestCourseDetail:
+    def _graph(self):
+        return FakeGraph(
+            details={
+                "CS-225": {
+                    "course_id": "CS-225",
+                    "course_number": "225",
+                    "subject_code": "CS",
+                    "title": "Data Structures",
+                    "level": "undergraduate",
+                    "description": "Elementary data structures and their implementations.",
+                    "concepts": [
+                        {"ku_id": "KU-A", "label": "Graphs and Trees", "knowledge_area": "DS", "confidence": 0.72},
+                        {"ku_id": "KU-B", "label": "Fundamental Data Structures", "knowledge_area": "SDF", "confidence": 0.59},
+                    ],
+                }
+            },
+            prereqs={"CS-225": [{"course_id": "CS-173", "title": "Discrete", "verbatim": "Prereq: CS-173"}]},
+            unlocks={"CS-225": [{"course_id": "CS-374", "title": "Algorithms"}]},
+        )
+
+    def test_full_detail(self):
+        r = AdvisoryService(self._graph()).course_detail("CS-225")
+        assert r.status == "ok"
+        assert r.title == "Data Structures"
+        assert r.description
+        assert len(r.concepts) == 2
+        # concepts sorted by confidence desc
+        assert r.concepts[0].ku_id == "KU-A"
+        assert [p.course_id for p in r.prerequisites] == ["CS-173"]
+        assert [u.course_id for u in r.unlocks] == ["CS-374"]
+        assert r.evidence_basis == "mixed"
+
+    def test_course_not_found(self):
+        r = AdvisoryService(FakeGraph()).course_detail("CS-999")
+        assert r.status == "course_not_found"
+        assert r.concepts == []
+
+
 # --- Endpoints ---------------------------------------------------------------
 
 class TestEndpoints:
@@ -188,6 +234,23 @@ class TestEndpoints:
         resp = client.get("/api/v1/unlock/CS-1")
         assert resp.status_code == 200
         assert resp.json()["unlocks"][0]["course_id"] == "CS-2"
+
+    def test_course_detail_endpoint(self):
+        graph = FakeGraph(
+            details={
+                "CS-1": {
+                    "course_id": "CS-1", "course_number": "1", "subject_code": "CS",
+                    "title": "Intro", "level": "undergraduate", "description": "desc",
+                    "concepts": [{"ku_id": "KU-A", "label": "A", "knowledge_area": "AL", "confidence": 0.8}],
+                }
+            },
+        )
+        client = _client(graph)
+        resp = client.get("/api/v1/course/CS-1")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["title"] == "Intro"
+        assert body["concepts"][0]["ku_id"] == "KU-A"
 
     def test_overlap_endpoint(self):
         graph = FakeGraph(

@@ -127,6 +127,44 @@ class Neo4jQueryService:
                 rows.append({"course_id": row["course_id"], "title": row["title"] or ""})
         return rows
 
+    def course_detail(self, course_id: str) -> dict | None:
+        """Full detail for one course: node fields + distinct covered KUs.
+
+        Returns None if the course does not exist.
+        """
+        driver = self._get_driver()
+        with driver.session() as session:
+            rec = session.run(
+                """
+                MATCH (c:Course {course_id: $cid})
+                OPTIONAL MATCH (c)<-[:EXTRACTED_FROM]-(concept:Concept)-[:ALIGNED_TO]->(ku:KnowledgeUnit)
+                WITH c, ku, avg(concept.confidence) AS ku_conf
+                RETURN c.course_id AS course_id,
+                       c.course_number AS course_number,
+                       c.subject_code AS subject_code,
+                       c.title AS title,
+                       c.level AS level,
+                       c.description AS description,
+                       collect(CASE WHEN ku IS NULL THEN NULL ELSE {
+                           ku_id: ku.ku_id, label: ku.label,
+                           knowledge_area: ku.knowledge_area, confidence: ku_conf
+                       } END) AS kus
+                """,
+                cid=course_id,
+            ).single()
+            if rec is None:
+                return None
+            kus = [k for k in rec["kus"] if k is not None]
+            return {
+                "course_id": rec["course_id"],
+                "course_number": rec["course_number"] or "",
+                "subject_code": rec["subject_code"] or "",
+                "title": rec["title"] or "",
+                "level": rec["level"] or "",
+                "description": rec["description"] or "",
+                "concepts": kus,
+            }
+
     def course_concepts(self, course_id: str) -> list[dict]:
         """Aligned concepts for a course, at knowledge-unit grain.
 

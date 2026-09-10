@@ -13,9 +13,26 @@ function guard(text: string): string {
   return text;
 }
 
-export function CourseCard({ course }: { course: CourseResult }) {
+export function CourseCard({
+  course,
+  onSelect,
+}: {
+  course: CourseResult;
+  onSelect?: (courseId: string) => void;
+}) {
   return (
-    <div className="card">
+    <div
+      className="card card-clickable"
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect?.(course.course_id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect?.(course.course_id);
+        }
+      }}
+    >
       <div className="card-header">
         <span className="course-number">
           {course.subject_code} {course.course_number}

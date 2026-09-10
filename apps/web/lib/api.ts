@@ -1,4 +1,4 @@
-import type { DiscoverResponse, Level } from "./types";
+import type { CourseDetailResponse, DiscoverResponse, Level } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 
@@ -32,4 +32,12 @@ export async function discover(query: string, level: Level): Promise<DiscoverRes
   }
 
   return (await res.json()) as DiscoverResponse;
+}
+
+export async function fetchCourseDetail(courseId: string): Promise<CourseDetailResponse> {
+  const res = await fetch(`${API_BASE}/api/v1/course/${encodeURIComponent(courseId)}`);
+  if (!res.ok) {
+    throw new Error(`Request failed (${res.status})`);
+  }
+  return (await res.json()) as CourseDetailResponse;
 }
