@@ -127,6 +127,57 @@ class Neo4jQueryService:
                 rows.append({"course_id": row["course_id"], "title": row["title"] or ""})
         return rows
 
+    def course_concepts(self, course_id: str) -> list[dict]:
+        """Aligned concepts for a course, at knowledge-unit grain.
+
+        Returns [{ku_id, ku_label, knowledge_area, confidence}] — one row per
+        aligned concept. Only concepts with an ALIGNED_TO edge are included
+        (overlap is measured against the controlled vocabulary, not raw labels).
+        """
+        driver = self._get_driver()
+        rows: list[dict] = []
+        with driver.session() as session:
+            result = session.run(
+                """
+                MATCH (c:Course {course_id: $cid})<-[:EXTRACTED_FROM]-(concept:Concept)
+                      -[:ALIGNED_TO]->(ku:KnowledgeUnit)
+                RETURN ku.ku_id AS ku_id,
+                       ku.label AS ku_label,
+                       ku.knowledge_area AS knowledge_area,
+                       concept.confidence AS confidence
+                """,
+                cid=course_id,
+            )
+            for row in result:
+                rows.append(
+                    {
+                        "ku_id": row["ku_id"],
+                        "ku_label": row["ku_label"] or "",
+                        "knowledge_area": row["knowledge_area"] or "",
+                        "confidence": float(row["confidence"] or 0.0),
+                    }
+                )
+        return rows
+
+    def covered_ku_ids(self, course_ids: list[str]) -> set[str]:
+        """The set of knowledge-unit ids covered by any of the given courses."""
+        if not course_ids:
+            return set()
+        driver = self._get_driver()
+        covered: set[str] = set()
+        with driver.session() as session:
+            result = session.run(
+                """
+                MATCH (c:Course)<-[:EXTRACTED_FROM]-(:Concept)-[:ALIGNED_TO]->(ku:KnowledgeUnit)
+                WHERE c.course_id IN $ids
+                RETURN DISTINCT ku.ku_id AS ku_id
+                """,
+                ids=course_ids,
+            )
+            for row in result:
+                covered.add(row["ku_id"])
+        return covered
+
     def declared_prereqs_between(self, course_ids: list[str]) -> set[tuple[str, str]]:
         driver = self._get_driver()
         pairs: set[tuple[str, str]] = set()
