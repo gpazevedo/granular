@@ -10,14 +10,18 @@ from granular.api.services.advisory_service import AdvisoryService
 
 
 class FakeGraph:
-    def __init__(self, prereqs=None, unlocks=None, existing=None) -> None:
+    def __init__(self, prereqs=None, unlocks=None, existing=None, concepts=None, covered=None) -> None:
         # prereqs: {course_id: [{"course_id","title","verbatim"}, ...]}
         self._prereqs = prereqs or {}
         # unlocks: {course_id: [{"course_id","title"}, ...]}
         self._unlocks = unlocks or {}
-        # existing: set of known course ids (defaults to keys of the two maps)
+        # concepts: {course_id: [{"ku_id","ku_label","knowledge_area","confidence"}, ...]}
+        self._concepts = concepts or {}
+        # covered: {course_id: {ku_id, ...}} — KUs a completed course covers
+        self._covered = covered or {}
+        # existing: set of known course ids (defaults to keys of the maps)
         self._existing = existing if existing is not None else (
-            set(self._prereqs) | set(self._unlocks)
+            set(self._prereqs) | set(self._unlocks) | set(self._concepts)
         )
 
     def course_exists(self, course_id: str) -> bool:
@@ -28,6 +32,15 @@ class FakeGraph:
 
     def get_unlocks(self, course_id: str):
         return self._unlocks.get(course_id, [])
+
+    def course_concepts(self, course_id: str):
+        return self._concepts.get(course_id, [])
+
+    def covered_ku_ids(self, course_ids):
+        result = set()
+        for c in course_ids:
+            result |= self._covered.get(c, set())
+        return result
 
 
 def _client(graph: FakeGraph) -> TestClient:
@@ -103,6 +116,53 @@ class TestUnlock:
         assert r.unlocks == []
 
 
+# --- Overlap -----------------------------------------------------------------
+
+class TestOverlap:
+    def _graph(self):
+        # Target CS-3 covers KU-A, KU-B, KU-C. CS-1 covers KU-A; CS-2 covers KU-B.
+        return FakeGraph(
+            concepts={
+                "CS-3": [
+                    {"ku_id": "KU-A", "ku_label": "A", "knowledge_area": "AL", "confidence": 0.8},
+                    {"ku_id": "KU-B", "ku_label": "B", "knowledge_area": "DS", "confidence": 0.6},
+                    {"ku_id": "KU-C", "ku_label": "C", "knowledge_area": "OS", "confidence": 0.7},
+                ]
+            },
+            covered={"CS-1": {"KU-A"}, "CS-2": {"KU-B"}},
+            existing={"CS-1", "CS-2", "CS-3"},
+        )
+
+    def test_matched_and_gap_split(self):
+        r = AdvisoryService(self._graph()).overlap("CS-3", ["CS-1", "CS-2"])
+        matched = {c.ku_id for c in r.matched_concepts}
+        gaps = {c.ku_id for c in r.gap_concepts}
+        assert matched == {"KU-A", "KU-B"}
+        assert gaps == {"KU-C"}
+        assert r.evidence_basis == "inferred"
+
+    def test_confidence_is_mean_of_matched(self):
+        r = AdvisoryService(self._graph()).overlap("CS-3", ["CS-1", "CS-2"])
+        # matched KU-A (0.8) and KU-B (0.6) -> mean 0.7
+        assert r.confidence == 0.7
+
+    def test_no_completed_all_gaps(self):
+        r = AdvisoryService(self._graph()).overlap("CS-3", [])
+        assert r.matched_concepts == []
+        assert {c.ku_id for c in r.gap_concepts} == {"KU-A", "KU-B", "KU-C"}
+        assert r.confidence == 0.0
+
+    def test_caveat_is_non_entitlement(self):
+        r = AdvisoryService(self._graph()).overlap("CS-3", ["CS-1"])
+        # Must not use entitlement language; explicitly disclaims exemption.
+        assert "exempt" not in r.caveat.lower() or "exemption" in r.caveat.lower()
+        assert r.caveat  # non-empty
+
+    def test_course_not_found(self):
+        r = AdvisoryService(FakeGraph(existing=set())).overlap("CS-999", [])
+        assert r.status == "course_not_found"
+
+
 # --- Endpoints ---------------------------------------------------------------
 
 class TestEndpoints:
@@ -128,3 +188,22 @@ class TestEndpoints:
         resp = client.get("/api/v1/unlock/CS-1")
         assert resp.status_code == 200
         assert resp.json()["unlocks"][0]["course_id"] == "CS-2"
+
+    def test_overlap_endpoint(self):
+        graph = FakeGraph(
+            concepts={
+                "CS-3": [
+                    {"ku_id": "KU-A", "ku_label": "A", "knowledge_area": "AL", "confidence": 0.8},
+                    {"ku_id": "KU-C", "ku_label": "C", "knowledge_area": "OS", "confidence": 0.7},
+                ]
+            },
+            covered={"CS-1": {"KU-A"}},
+            existing={"CS-1", "CS-3"},
+        )
+        client = _client(graph)
+        resp = client.post("/api/v1/overlap", json={"course_id": "CS-3", "completed_courses": ["CS-1"]})
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["evidence_basis"] == "inferred"
+        assert {c["ku_id"] for c in body["matched_concepts"]} == {"KU-A"}
+        assert {c["ku_id"] for c in body["gap_concepts"]} == {"KU-C"}

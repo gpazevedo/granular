@@ -116,3 +116,34 @@ class UnlockResponse(BaseModel):
     evidence_basis: Literal["declared"] = "declared"
     status: Literal["ok", "course_not_found"] = "ok"
     status_message: Optional[str] = None
+
+
+# --- Overlap (REQ-AQ-08) -----------------------------------------------------
+
+OVERLAP_CAVEAT = (
+    "Overlap is inferred from course descriptions via the CS2023 vocabulary "
+    "and may not reflect actual course content; it does not imply exemption."
+)
+
+
+class OverlapConcept(BaseModel):
+    ku_id: str
+    label: str
+    knowledge_area: str
+
+
+class OverlapRequest(BaseModel):
+    course_id: str = Field(..., min_length=1)
+    # Session-scoped only; never persisted.
+    completed_courses: list[str] = Field(default_factory=list)
+
+
+class OverlapResponse(BaseModel):
+    course_id: str
+    matched_concepts: list[OverlapConcept]   # target KUs already covered
+    gap_concepts: list[OverlapConcept]       # target KUs not covered
+    confidence: float                        # mean alignment confidence over matched KUs
+    evidence_basis: Literal["inferred"] = "inferred"
+    caveat: str = OVERLAP_CAVEAT
+    status: Literal["ok", "course_not_found"] = "ok"
+    status_message: Optional[str] = None
