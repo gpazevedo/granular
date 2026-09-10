@@ -7,7 +7,12 @@ from dataclasses import dataclass
 from typing import Callable
 
 from granular.evaluation.config import EvalConfig
-from granular.evaluation.metric import InferredGraph, MetricCalculator, MetricResult
+from granular.evaluation.metric import (
+    InferredDepEdge,
+    InferredGraph,
+    MetricCalculator,
+    MetricResult,
+)
 from granular.evaluation.split import Split
 from granular.inference.config import PipelineMode
 

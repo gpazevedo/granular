@@ -18,6 +18,36 @@ def _scorer(mode, declared=None):
     return DependencyScorer(cfg, PrerequisitePrior(declared or set()))
 
 
+class TestAblationInferFn:
+    def test_build_ablation_infer_fn_produces_graph_per_mode(self):
+        # Exercises build_ablation_infer_fn end-to-end (guards against the
+        # missing-import class of bug that a fake infer_fn would not catch).
+        from granular.evaluation.ablation import build_ablation_infer_fn
+        from granular.inference.config import InferenceConfig, PipelineMode
+        from granular.inference.scorer import ConceptNode
+
+        concepts = [
+            ConceptNode(
+                concept_id="a", label="a", source_course_id="CS-400",
+                course_number="400", knowledge_area="AL",
+            ),
+            ConceptNode(
+                concept_id="b", label="b", source_course_id="CS-100",
+                course_number="100", knowledge_area="AL",
+            ),
+        ]
+        fn = build_ablation_infer_fn(concepts, {("CS-400", "CS-100")}, InferenceConfig())
+        for mode in (
+            PipelineMode.RETRIEVAL_ONLY,
+            PipelineMode.RETRIEVAL_RERANK,
+            PipelineMode.FULL_PIPELINE,
+        ):
+            graph = fn(mode)
+            assert graph.concept_to_course == {"a": "CS-400", "b": "CS-100"}
+            # A 400-level -> 100-level dependency should be inferrable.
+            assert len(graph.edges) >= 1
+
+
 class TestModeAwareScoring:
     def test_retrieval_only_ignores_prereq_and_cooccurrence(self):
         # Same-area concepts with a declared prereq: rerank signals would boost
