@@ -38,6 +38,14 @@ def build_ablation_infer_fn(
     only, retrieval_rerank adds the prereq/cooccurrence rerank signals, and
     full_pipeline additionally applies ordering rejection + cycle resolution.
     All three run over the same loaded concept set and declared prerequisites.
+
+    Note: full_pipeline and retrieval_rerank often report identical metrics.
+    That is expected, not a bug: the dependency inferrer hard-filters any
+    candidate where the dependency is at a higher course level than the
+    dependent, so inferred edges are level-monotonic and cannot form the cycles
+    or declared-ordering contradictions that the reject/cycle stage removes.
+    The stage is correct but redundant given that upstream filter; it only
+    earns its keep if the hard filter is ever loosened.
     """
     import copy
 
@@ -54,6 +62,16 @@ def build_ablation_infer_fn(
     def infer_fn(mode: PipelineMode) -> InferredGraph:
         cfg = copy.copy(base_config)
         cfg.mode = mode
+        # Mode-appropriate acceptance threshold. min_dependency_score is tuned
+        # for the full combined score; applying it unchanged to retrieval_only
+        # (course-level signal alone, which realistically maxes ~0.4) would
+        # reject everything and make the ablation uninformative. Scale the
+        # threshold to the fraction of the combined score that mode can produce,
+        # so each condition is a fair "what does this signal set recover" test.
+        if mode == PipelineMode.RETRIEVAL_ONLY:
+            cfg.min_dependency_score = base_config.min_dependency_score * (
+                base_config.signal_weights.course_level
+            )
         prereq_prior = PrerequisitePrior(declared_prereqs)
         scorer = DependencyScorer(cfg, prereq_prior)
         validator = OrderingValidator(prereq_prior)
