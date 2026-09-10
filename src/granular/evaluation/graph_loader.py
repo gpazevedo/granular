@@ -81,6 +81,64 @@ class Neo4jGraphLoader:
         )
         return graph, declared
 
+    def load_concepts_for_ablation(self) -> list:
+        """Load all concepts as inference ConceptNode records (for real ablation)."""
+        from granular.inference.scorer import ConceptNode
+
+        driver = self._get_driver()
+        out: list[ConceptNode] = []
+        with driver.session() as session:
+            result = session.run(
+                """
+                MATCH (c:Concept)-[:EXTRACTED_FROM]->(course:Course)
+                OPTIONAL MATCH (c)-[:ALIGNED_TO]->(k:KnowledgeUnit)
+                RETURN c.concept_id AS cid, c.label AS label,
+                       course.course_id AS course, course.course_number AS cnum,
+                       coalesce(k.knowledge_area, '') AS area
+                """
+            )
+            for row in result:
+                out.append(
+                    ConceptNode(
+                        concept_id=row["cid"],
+                        label=row["label"] or "",
+                        source_course_id=row["course"] or "",
+                        course_number=row["cnum"] or "",
+                        knowledge_area=row["area"] or "",
+                    )
+                )
+        return out
+
+    def load_aligned_concepts(self) -> list:
+        """Load all ALIGNED concepts with their KU, for alignment-precision eval."""
+        from granular.evaluation.alignment_eval import AlignedConcept
+
+        driver = self._get_driver()
+        out: list[AlignedConcept] = []
+        with driver.session() as session:
+            result = session.run(
+                """
+                MATCH (c:Concept)-[:EXTRACTED_FROM]->(course:Course)
+                MATCH (c)-[:ALIGNED_TO]->(k:KnowledgeUnit)
+                RETURN c.concept_id AS cid, c.label AS clabel, course.course_id AS course,
+                       k.ku_id AS ku_id, k.label AS ku_label,
+                       k.knowledge_area AS area, c.confidence AS conf
+                """
+            )
+            for row in result:
+                out.append(
+                    AlignedConcept(
+                        concept_id=row["cid"],
+                        concept_label=row["clabel"] or "",
+                        course_id=row["course"] or "",
+                        ku_id=row["ku_id"] or "",
+                        ku_label=row["ku_label"] or "",
+                        knowledge_area=row["area"] or "",
+                        confidence=float(row["conf"] or 0.0),
+                    )
+                )
+        return out
+
     def close(self) -> None:
         if self._driver:
             self._driver.close()
