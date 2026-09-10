@@ -16,6 +16,10 @@ class ExtractionConfig:
     embedding_model_id: str = "openai/text-embedding-3-small"
     top_k: int = 10
     min_confidence: float = 0.3
+    # When set, the winning concept->KU alignment is verified by this chat model
+    # before acceptance, rejecting embedding false positives (e.g. "solar car
+    # economics" -> Requirements Engineering). Empty disables verification.
+    alignment_verify_model_id: str = "openai/gpt-4o-mini"
     low_confidence_threshold: float = 0.5
     min_description_length: int = 20
     pgvector_dsn: str = "postgresql://granular:changeme@localhost:5432/granular"
@@ -89,5 +93,16 @@ class ExtractionConfig:
         # Ensure embedding model has provider prefix
         if cfg.embedding_model_id and "/" not in cfg.embedding_model_id:
             cfg.embedding_model_id = f"openai/{cfg.embedding_model_id}"
-        
+
+        # Alignment verification model: explicit override, else follow the
+        # extraction LLM so the provider (OpenAI/Anthropic/Bedrock) stays consistent.
+        verify_override = os.environ.get("ALIGNMENT_VERIFY_MODEL")
+        if verify_override is not None:
+            cfg.alignment_verify_model_id = verify_override
+        elif any(
+            os.environ.get(k)
+            for k in ("ANTHROPIC_LLM_MODEL", "BEDROCK_LLM_MODEL", "OPENAI_LLM_MODEL")
+        ):
+            cfg.alignment_verify_model_id = cfg.llm_model_id
+
         return cfg

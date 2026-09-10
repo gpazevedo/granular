@@ -24,7 +24,9 @@ class Neo4jQueryService:
             self._driver = GraphDatabase.driver(self._uri, auth=(self._user, self._password))
         return self._driver
 
-    def match_courses(self, ku_ids: list[str], level: str) -> list[CourseMatch]:
+    def match_courses(
+        self, ku_ids: list[str], level: str, min_confidence: float = 0.0
+    ) -> list[CourseMatch]:
         driver = self._get_driver()
         matches: list[CourseMatch] = []
         with driver.session() as session:
@@ -34,6 +36,7 @@ class Neo4jQueryService:
                       -[:ALIGNED_TO]->(ku:KnowledgeUnit)
                 WHERE ku.ku_id IN $ku_ids
                   AND ($level = 'all' OR c.level = $level)
+                  AND concept.confidence >= $min_confidence
                 WITH c,
                      collect(DISTINCT ku.ku_id) AS covered_kus,
                      avg(concept.confidence) AS mean_confidence
@@ -49,6 +52,7 @@ class Neo4jQueryService:
                 """,
                 ku_ids=ku_ids,
                 level=level,
+                min_confidence=min_confidence,
             )
             for row in result:
                 desc = row["description"] or ""

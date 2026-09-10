@@ -50,6 +50,50 @@ def _margin_confidence(scores: list[float], temperature: float) -> float:
     return exp_winner / total
 
 
+def llm_confirms_alignment(
+    concept_label: str,
+    ku_label: str,
+    provider,
+    model_name: str,
+) -> bool:
+    """Ask an LLM whether `concept_label` genuinely belongs to CS2023 unit `ku_label`.
+
+    Guards against embedding false positives where lexical overlap
+    ("construction", "design", "analysis") maps unrelated concepts onto
+    software-engineering units. Returns True to accept, False to reject.
+
+    Never raises: on any error returns True (fail-open), so verification only
+    ever removes clear false positives and never silently drops the pipeline's
+    output on an LLM outage.
+    """
+    import json
+
+    system = (
+        "You are a CS curriculum expert validating an automated mapping. "
+        "Given an extracted course concept and a candidate CS2023 knowledge "
+        "unit, decide if the concept is genuinely an instance of that knowledge "
+        "unit's topic. Reject mappings that only share surface words (e.g. "
+        "'construction of solar cars' is NOT 'Software Construction'; "
+        "'group presentations' is NOT 'Software Project Management'). "
+        'Respond with JSON: {"belongs": true|false}.'
+    )
+    user = f'Concept: "{concept_label}"\nCS2023 knowledge unit: "{ku_label}"'
+    try:
+        raw = provider.chat_completion(
+            system=system,
+            user_message=user,
+            model=model_name,
+            temperature=0.0,
+            response_format={"type": "json_object"},
+        )
+        parsed = json.loads(raw or "{}")
+        if isinstance(parsed, dict) and "belongs" in parsed:
+            return bool(parsed["belongs"])
+        return True
+    except Exception:  # pragma: no cover - fail open on LLM/parse errors
+        return True
+
+
 def verify(
     candidates: list[RankedCandidateKU],
     config: ExtractionConfig,
