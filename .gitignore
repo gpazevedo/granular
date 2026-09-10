@@ -35,6 +35,7 @@ out/
 # Data outputs (generated — not committed)
 data/ingestion/output/
 data/evaluation/runs/
+data/evaluation/output/
 data/extraction/output/
 data/inference/output/
 
