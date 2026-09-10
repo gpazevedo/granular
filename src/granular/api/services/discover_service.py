@@ -21,7 +21,12 @@ from granular.api.models.responses import (
     ThinCoverageNote,
 )
 from granular.api.services.combinator import build_combinations
-from granular.api.services.matcher import CourseMatch, coverage_breadth, rank_courses
+from granular.api.services.matcher import (
+    CourseMatch,
+    composite_score,
+    coverage_breadth,
+    rank_courses,
+)
 from granular.api.services.resolver import ResolutionResult
 
 
@@ -130,7 +135,11 @@ class DiscoverService:
             level=m.level,
             credits=m.credits,
             description_excerpt=m.description_excerpt,
-            relevance_score=round(m.relevance_score, 3),
+            # relevance_score is the composite (coverage-weighted) that drives
+            # ranking; confidence is the raw mean alignment confidence (REQ-AQ-03).
+            relevance_score=round(
+                composite_score(len(m.covered_ku_ids), total_kus, m.relevance_score), 3
+            ),
             coverage_breadth=coverage_breadth(len(m.covered_ku_ids), total_kus),
             covered_ku_ids=m.covered_ku_ids,
             confidence=round(m.relevance_score, 3),
