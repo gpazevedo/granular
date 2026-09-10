@@ -13,6 +13,11 @@ class APIConfig:
     neo4j_password: str = "changeme"
     pgvector_dsn: str = "postgresql://granular:changeme@localhost:5432/granular"
     embedding_model_id: str = "openai/text-embedding-3-small"
+    # A capable chat model used to interpret the student's query and select,
+    # from the embedding-retrieved candidates, the knowledge units that
+    # genuinely match their intent. Set to "" to disable LLM reranking and fall
+    # back to embedding-only resolution.
+    resolution_llm_model_id: str = "openai/gpt-4o"
     frontend_origin: str = "http://localhost:3000"
     min_coverage_courses: int = 1
     max_combinations: int = 5
@@ -39,4 +44,8 @@ class APIConfig:
         cfg.pgvector_dsn = os.environ.get("PGVECTOR_DSN", cfg.pgvector_dsn)
         cfg.embedding_model_id = os.environ.get("OPENAI_EMBEDDING_MODEL", cfg.embedding_model_id)
         cfg.frontend_origin = os.environ.get("FRONTEND_ORIGIN", cfg.frontend_origin)
+        # Optional override for the query-resolution chat model.
+        cfg.resolution_llm_model_id = os.environ.get(
+            "RESOLUTION_LLM_MODEL", cfg.resolution_llm_model_id
+        )
         return cfg
