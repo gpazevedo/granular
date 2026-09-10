@@ -30,6 +30,7 @@ def get_resolver() -> QueryResolver:
         pgvector_dsn=cfg.pgvector_dsn,
         top_k=cfg.resolution_top_k,
         min_score=cfg.resolution_min_score,
+        llm_model_id=cfg.resolution_llm_model_id,
     )
 
 
