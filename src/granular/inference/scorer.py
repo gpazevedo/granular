@@ -32,8 +32,23 @@ class DependencyScorer:
         self._prereq = prereq_prior
 
     def score(self, dependent: ConceptNode, dependency: ConceptNode) -> float:
-        """Score the hypothesis that `dependent` depends on `dependency`."""
+        """Score the hypothesis that `dependent` depends on `dependency`.
+
+        Signals included depend on the configured pipeline mode (for ablation):
+          - retrieval_only: course-level signal only
+          - retrieval_rerank / full_pipeline: all three structural signals
+        The reject/cycle stages (which further distinguish full_pipeline) are
+        applied by the caller, not here.
+        """
+        from granular.inference.config import PipelineMode
+
         level = course_level_score(dependent.course_number, dependency.course_number)
+
+        if self._config.mode == PipelineMode.RETRIEVAL_ONLY:
+            # Only the base structural signal contributes; normalise by its
+            # weight so scores stay comparable to the min_dependency_score floor.
+            return level
+
         prereq = self._prereq.score(
             dependent.source_course_id, dependency.source_course_id
         )

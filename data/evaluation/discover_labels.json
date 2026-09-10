@@ -1,0 +1,23 @@
+{
+  "description": "Labelled queries for the discover-relevance eval. Each query lists the CS2023 knowledge-area codes a correct resolution should land in. Areas (not specific KU ids) are used because they are stable across vocabulary revisions. Used to measure resolver precision/recall.",
+  "queries": [
+    { "query": "machine learning", "expected_areas": ["IS"] },
+    { "query": "artificial intelligence", "expected_areas": ["IS"] },
+    { "query": "natural language processing", "expected_areas": ["IS"] },
+    { "query": "databases and SQL", "expected_areas": ["IM"] },
+    { "query": "computer networks", "expected_areas": ["NC"] },
+    { "query": "operating systems", "expected_areas": ["OS"] },
+    { "query": "software engineering", "expected_areas": ["SE", "SDF"] },
+    { "query": "algorithms and complexity", "expected_areas": ["AL"] },
+    { "query": "computer architecture", "expected_areas": ["AR"] },
+    { "query": "discrete mathematics", "expected_areas": ["DS", "MSF"] },
+    { "query": "computer graphics", "expected_areas": ["GIT"] },
+    { "query": "cybersecurity", "expected_areas": ["IAS"] },
+    { "query": "human computer interaction", "expected_areas": ["HCI"] },
+    { "query": "parallel and distributed computing", "expected_areas": ["PD"] },
+    { "query": "programming languages and compilers", "expected_areas": ["PL"] },
+    { "query": "web and mobile development", "expected_areas": ["PBD"] },
+    { "query": "probability and statistics", "expected_areas": ["MSF"] },
+    { "query": "data structures", "expected_areas": ["SDF", "AL", "DS"] }
+  ]
+}
