@@ -12,6 +12,7 @@ iteration.
 | Doc | What's in it |
 | --- | --- |
 | [`SYSTEM_OVERVIEW.md`](SYSTEM_OVERVIEW.md) | Architecture diagrams, the concept-alignment and dependency-inference pipelines, the Discover query flow, and a full description of the evaluation system |
+| [`ARCHITECTURE_DECISIONS.md`](ARCHITECTURE_DECISIONS.md) | Every major architectural decision and the reasoning behind it |
 | [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md) | Full local setup: Docker services, `.env` reference, troubleshooting |
 | [`DATA_LIFECYCLE.md`](DATA_LIFECYCLE.md) | What's persisted where, and the pipeline's read/write order |
 | [`project_definition_kiro.md`](project_definition_kiro.md) | The original project brief this system was scoped from |
