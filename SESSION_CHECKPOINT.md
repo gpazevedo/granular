@@ -7,6 +7,7 @@
 ## What's Done
 
 ### 1. **Data Pipeline** (6 packages, all on main)
+
 - ✅ `granular.schema` — canonical data model with strict invariants
 - ✅ `granular.ingestion` — UIUC static-catalog adapter (94 CS courses ingested)
 - ✅ `granular.extraction` — concept extraction (LLM-based, supports OpenAI/Anthropic/Bedrock)
@@ -15,19 +16,23 @@
 - ✅ `granular.api` — FastAPI advisory queries (discover endpoint)
 
 ### 2. **Frontend**
+
 - ✅ `apps/web` — Next.js 14 discover UI (typechecks and builds clean)
 
 ### 3. **Infrastructure**
+
 - ✅ Docker Compose (Neo4j + PostgreSQL running with persistent volumes)
 - ✅ AWS Bedrock integration (Amazon Nova models supported)
 - ✅ LLM abstraction layer (OpenAI, Anthropic, Bedrock all work)
 
 ### 4. **Data**
+
 - ✅ 94 UIUC CS courses ingested to `data/ingestion/uiuc/courses.jsonl`
 - ✅ 77 with usable descriptions (≥50 chars)
 - ✅ 201 prerequisite edges extracted from prose descriptions
 
 ### 5. **Documentation**
+
 - ✅ `INFRASTRUCTURE.md` — setup, services, env vars
 - ✅ `DATA_LIFECYCLE.md` — persistence model, workflows, backups
 - ✅ `docker-compose.yml` — persistent volumes for Neo4j and PostgreSQL
@@ -120,7 +125,7 @@ cd apps/web && npm run dev
 ## Key Files to Know
 
 | File | Purpose |
-|---|---|
+| --- | --- |
 | `data/ingestion/uiuc/courses.jsonl` | Ingestion output (94 courses, structured) |
 | `.env` | Your configuration (LLM provider, API keys, AWS region) |
 | `docker-compose.yml` | Service definitions (Neo4j, PostgreSQL) |
@@ -143,7 +148,7 @@ Before starting extraction, ensure:
 ## LLM Provider Quick Reference
 
 | Provider | Setup | Cost (94 courses) | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **AWS Bedrock Nova** | `BEDROCK_LLM_MODEL=us.amazon.nova-lite-v1:0` | ~$0.05 | Recommended: cheapest, AWS-native |
 | **Anthropic Haiku** | `ANTHROPIC_LLM_MODEL=claude-3-5-haiku-20241022` | ~$0.15 | Good: fast, reliable |
 | **OpenAI GPT-4o-mini** | `OPENAI_LLM_MODEL=gpt-4o-mini` | ~$0.30 | Expensive: good quality |
@@ -155,6 +160,7 @@ All require `OPENAI_EMBEDDING_MODEL=text-embedding-3-small` for embeddings (~$0.
 ✅ **All data persists** — Neo4j and PostgreSQL use Docker volumes that survive restarts.
 
 Safe workflow:
+
 ```bash
 docker compose up -d        # Start (volumes auto-create)
 granular-extract run        # Extract once (writes to persistent volume)
@@ -183,6 +189,7 @@ pytest tests/
 ## Troubleshooting
 
 **Neo4j connection refused?**
+
 ```bash
 docker compose logs neo4j | tail -20
 docker compose restart neo4j
@@ -190,17 +197,20 @@ sleep 10
 ```
 
 **PostgreSQL not healthy?**
+
 ```bash
 docker compose logs postgres
 docker compose restart postgres
 ```
 
 **LLM API errors?**
+
 - Check `.env` has correct credentials and model IDs
 - Verify AWS region is set (if using Bedrock): `echo $AWS_REGION`
 - Verify OpenAI key is set: `echo $OPENAI_API_KEY | head -c 10`
 
 **Concept extraction slow or failing?**
+
 - Extraction is rate-limited (1 req/sec per LLM to avoid throttling)
 - Expected: ~10-15 minutes for 94 courses
 - Check logs: `docker compose logs` or run with `-vv` flag
@@ -208,11 +218,13 @@ docker compose restart postgres
 ## Next Session Handoff
 
 When handing to a fresh session, provide:
+
 1. This file (`SESSION_CHECKPOINT.md`)
 2. A `.env` file with configured LLM provider and credentials
 3. Confirm Docker services are running: `docker compose ps`
 
 Fresh session can then immediately:
+
 ```bash
 granular-extract run  # Pick up where you left off
 ```

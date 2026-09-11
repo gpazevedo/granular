@@ -19,7 +19,21 @@ cannot appear in the same field of any record (enforced invariant, not a convent
 ## End-to-end architecture
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '20px', 'fontFamily': 'trebuchet ms, verdana, arial'}}}%%
 flowchart LR
+    classDef source fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a
+    classDef ingest fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
+    classDef schema fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#4c1d95
+    classDef extract fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#14532d
+    classDef infer fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d
+    classDef store fill:#cffafe,stroke:#0891b2,stroke-width:2px,color:#164e63
+    classDef api fill:#fae8ff,stroke:#c026d3,stroke-width:2px,color:#701a75
+    classDef eval fill:#fef9c3,stroke:#ca8a04,stroke-width:2px,color:#713f12
+    classDef frontend fill:#e2e8f0,stroke:#475569,stroke-width:2px,color:#1e293b
+
+    subgraph OUTER[" "]
+    direction LR
+
     subgraph SRC["Catalogue sources"]
         A1["catalog.purdue.edu\n(Modern Campus Acalog)"]
         A2["purdue.io OData v4\n(secondary, structured)"]
@@ -59,6 +73,7 @@ flowchart LR
     end
 
     FE["Next.js + TypeScript\nfrontend"]
+    end
 
     A1 --> AD
     A2 --> AD
@@ -78,6 +93,26 @@ flowchart LR
     DISC --> FE
     ADV --> FE
     NEO --> EV
+
+    class A1,A2 source
+    class AD ingest
+    class CS schema
+    class E1,E2 extract
+    class I1,I2 infer
+    class NEO,PGV store
+    class RES,DISC,ADV api
+    class EV eval
+    class FE frontend
+
+    style OUTER fill:#f8fafc,stroke:none
+    style SRC fill:#eff6ff,stroke:#2563eb,stroke-width:1px
+    style ING fill:#fffbeb,stroke:#d97706,stroke-width:1px
+    style SCHEMA fill:#f5f3ff,stroke:#7c3aed,stroke-width:1px
+    style EXT fill:#f0fdf4,stroke:#16a34a,stroke-width:1px
+    style INF fill:#fef2f2,stroke:#dc2626,stroke-width:1px
+    style STORE fill:#ecfeff,stroke:#0891b2,stroke-width:1px
+    style API fill:#fdf4ff,stroke:#c026d3,stroke-width:1px
+    style EVAL fill:#fefce8,stroke:#ca8a04,stroke-width:1px
 ```
 
 Genericity lives entirely at the ingestion adapter boundary — nothing downstream of
