@@ -3,9 +3,9 @@
 A research system that ingests a university's published CS curriculum, builds a
 two-layer knowledge map — the declared structural record and an inferred
 CS2023-aligned concept graph — and answers "what should I learn next?" queries in
-plain English. Primary target institution/platform: Purdue University on Modern
-Campus Acalog; a UIUC static-catalog adapter is also wired up for faster local
-iteration.
+plain English. Primary target institution: UIUC (static catalog at
+catalog.illinois.edu); a Purdue University adapter (Modern Campus Acalog +
+purdue.io OData) is also available.
 
 ## Documentation map
 
@@ -32,7 +32,8 @@ cp .env.example .env   # fill in an LLM API key — see .env.example for provide
 pip install -e .
 
 # 4. Run the pipeline, in order
-granular-ingest uiuc --output-dir data/ingestion/uiuc   # or the acalog/purdue adapter
+granular-ingest uiuc --output-dir data/ingestion/uiuc   # primary adapter
+# granular-ingest run --output-dir data/ingestion/purdue  # Purdue (Acalog + OData)
 granular-extract run     # concept extraction + CS2023 alignment
 granular-infer run       # dependency inference
 granular-eval run        # held-out F1 + report
@@ -63,7 +64,7 @@ Frontend: `cd apps/web && npm run build` (typechecks and builds).
 ```text
 src/granular/
   schema/       canonical types: Course, Programme, DeclaredEdge, InferredEdge, Concept, KnowledgeUnit
-  ingestion/    catalogue adapters (Acalog/Purdue, purdue.io, UIUC) — parse only, no inference
+  ingestion/    catalogue adapters (UIUC primary, Purdue secondary, purdue.io) — parse only, no inference
   extraction/   concept extraction + 4-stage CS2023 alignment pipeline
   inference/    structural dependency inference -> DEPENDS_ON edges
   api/          FastAPI app: query resolution, discover + advisory-query services

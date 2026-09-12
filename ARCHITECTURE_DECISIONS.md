@@ -39,26 +39,25 @@ artefact framing."
 
 ---
 
-## 2. Scope narrowed from two institutions/platforms to one
+## 2. Scope narrowed from two institutions/platforms to one, then shifted to UIUC as primary
 
-**Decision:** Target a single institution (Purdue University) on a single
-platform (Modern Campus Acalog), with purdue.io's OData v4 API as a secondary
-structured source. The original brief called for two institutions on two
-different platforms.
+**Decision:** The primary development target is UIUC (static catalog at
+catalog.illinois.edu), with Purdue University (Modern Campus Acalog + purdue.io
+OData) available as a secondary adapter. The original brief called for two
+institutions on two different platforms.
 
-**Why:** Modern Campus hosts many institutions, so genericity is demonstrated
-at the *platform* level (one adapter, many potential institutions) rather than
-by institution count. Building and validating a second full adapter for a
-second platform would have doubled ingestion effort without adding evidence for
-the part of the system actually being tested — concept extraction, alignment,
-and inference.
+**Why:** UIUC's static HTML catalog is simpler to ingest (no bot mitigation, no
+authentication, single-page fetches), making it ideal for fast iteration during
+development. The Purdue adapter remains available for platform-genericity
+demonstration and for institutions on Modern Campus. Genericity is demonstrated
+at the *schema and pipeline* level — downstream code works with any adapter's
+output — rather than by requiring simultaneous use of multiple adapters.
 
 **Consequences:** The genericity claim is scoped precisely: "adapter genericity
-across the Modern Campus platform, not extraction genericity across
-disciplines" — this caveat is templated into every evaluation report so it
-can't be overstated by accident. A second adapter (UIUC, static catalogue) was
-still built for fast local iteration without depending on Purdue's live site,
-but it doesn't broaden the genericity claim.
+across the canonical schema, not extraction genericity across disciplines" —
+this caveat is templated into every evaluation report so it can't be overstated
+by accident. The UIUC adapter is the primary path for development; the Purdue
+adapter validates that the schema and pipelines remain platform-agnostic.
 
 ---
 
