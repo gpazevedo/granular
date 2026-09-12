@@ -10,8 +10,8 @@ inclusion: always
 - **Backend:** Python
 - **Graph store:** Neo4j (local, provisioned by project setup) — all Cypher queries written in openCypher to remain portable across openCypher-compatible stores (Neo4j, Amazon Neptune, FalkorDB where traversal is not required, Memgraph, etc.)
 - **Vector index:** pgvector (local, provisioned by project setup)
-- **Catalogue source:** Purdue University — Modern Campus Acalog (`catalog.purdue.edu`)
-- **Secondary source:** purdue.io OData v4 API (community-built, open)
+- **Catalogue source (primary):** UIUC — static catalog (`catalog.illinois.edu`)
+- **Catalogue source (secondary):** Purdue University — Modern Campus Acalog (`catalog.purdue.edu`) + purdue.io OData v4 API (community-built, open)
 - **Controlled vocabulary:** CS2023 (ACM/IEEE-CS/AAAI) — bootstrapped from published PDF as a one-time task in the `concept-extraction` spec
 
 ## Three-stage shape
@@ -19,11 +19,11 @@ inclusion: always
 ```text
    catalogue sources          canonical schema           consumers
    ─────────────────          ────────────────           ─────────
-   catalog.purdue.edu  ──┐
-                         ├── Purdue/MC adapter ──▶  Programme         ┌─▶ concept graph
-   purdue.io OData    ───┘                            Course          │      │
-                                                      Requirement     │      ▼
-                                                      CourseSet       │  advisory queries
+   catalog.illinois.edu ──┐
+                           ├── UIUC static adapter ──▶  Programme       ┌─▶ concept graph
+                           │                            Course          │      │
+   catalog.purdue.edu  ───┤                            Requirement     │      ▼
+   purdue.io OData    ────┘                            CourseSet       │  advisory queries
                                                       DeclaredEdge ───┘      │
                                                                              ▼
                                                                        Next.js frontend
@@ -71,7 +71,7 @@ This is a research artefact, not a production system. Specifically:
 ## Spec dependency order
 
 1. `canonical-schema` — schema types and invariants
-2. `catalogue-ingestion` — Purdue/Modern Campus adapter
+2. `catalogue-ingestion` — UIUC static adapter (primary), Purdue/Modern Campus adapter (secondary)
 3. `concept-extraction` — CS2023 bootstrap + alignment pipeline
 4. `concept-graph-inference` — dependency inference
 5. `evaluation-harness` — held-out metric (gates nothing in current scope since §6.6 deferral is lifted)

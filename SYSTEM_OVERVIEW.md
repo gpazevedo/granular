@@ -1,10 +1,22 @@
 # Granular — System Overview
 
-A research system that ingests Purdue University's published CS curriculum, builds a
+A research system that ingests UIUC's published CS curriculum, builds a
 two-layer knowledge map, and answers "what should I learn next?" queries in plain
 English. See [`project_definition_kiro.md`](project_definition_kiro.md) and
 [`.kiro/steering/`](.kiro/steering/) for the source requirements this document
 summarises and diagrams.
+
+## Contents
+
+- [The two-layer model](#the-two-layer-model)
+- [End-to-end architecture](#end-to-end-architecture)
+- [Package map](#package-map)
+- [Concept alignment pipeline (extraction)](#concept-alignment-pipeline-extraction)
+- [Dependency inference pipeline](#dependency-inference-pipeline)
+- [Discover (primary advisory surface) query flow](#discover-primary-advisory-surface-query-flow)
+- [Evaluation system](#evaluation-system)
+- [CLI surface](#cli-surface)
+- [Enforced invariants (recap)](#enforced-invariants-recap)
 
 ## The two-layer model
 
@@ -18,102 +30,7 @@ cannot appear in the same field of any record (enforced invariant, not a convent
 
 ## End-to-end architecture
 
-```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '20px', 'fontFamily': 'trebuchet ms, verdana, arial'}}}%%
-flowchart LR
-    classDef source fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a
-    classDef ingest fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
-    classDef schema fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#4c1d95
-    classDef extract fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#14532d
-    classDef infer fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d
-    classDef store fill:#cffafe,stroke:#0891b2,stroke-width:2px,color:#164e63
-    classDef api fill:#fae8ff,stroke:#c026d3,stroke-width:2px,color:#701a75
-    classDef eval fill:#fef9c3,stroke:#ca8a04,stroke-width:2px,color:#713f12
-    classDef frontend fill:#e2e8f0,stroke:#475569,stroke-width:2px,color:#1e293b
-
-    subgraph OUTER[" "]
-    direction LR
-
-    subgraph SRC["Catalogue sources"]
-        A1["catalog.purdue.edu\n(Modern Campus Acalog)"]
-        A2["purdue.io OData v4\n(secondary, structured)"]
-    end
-
-    subgraph ING["Ingestion — granular.ingestion"]
-        AD["Acalog adapter\n(parse only, no inference)"]
-    end
-
-    subgraph SCHEMA["Canonical schema — granular.schema"]
-        CS["Programme · Course · Requirement\nCourseSet · DeclaredEdge"]
-    end
-
-    subgraph EXT["Concept extraction — granular.extraction"]
-        E1["Extract concepts\nfrom course prose (LLM)"]
-        E2["Align to CS2023\n4-stage pipeline"]
-    end
-
-    subgraph INF["Concept-graph inference — granular.inference"]
-        I1["Score structural signals"]
-        I2["Reject on ordering\n+ resolve cycles"]
-    end
-
-    subgraph STORE["Stores"]
-        NEO[("Neo4j\nopenCypher only")]
-        PGV[("pgvector\nKU + query embeddings")]
-    end
-
-    subgraph API["API — granular.api"]
-        RES["QueryResolver"]
-        DISC["DiscoverService"]
-        ADV["Advisory queries\n(readiness / unlock / overlap / fit)"]
-    end
-
-    subgraph EVAL["Evaluation harness — granular.evaluation\n(reads Neo4j, writes nothing)"]
-        EV["EvalRunner"]
-    end
-
-    FE["Next.js + TypeScript\nfrontend"]
-    end
-
-    A1 --> AD
-    A2 --> AD
-    AD --> CS
-    CS -->|DeclaredEdge, Course| NEO
-    CS --> E1
-    E1 --> E2
-    E2 -->|Concept, aligned KU| NEO
-    E2 --> PGV
-    NEO --> I1
-    I1 --> I2
-    I2 -->|InferredEdge DEPENDS_ON| NEO
-    PGV --> RES
-    NEO --> DISC
-    NEO --> ADV
-    RES --> DISC
-    DISC --> FE
-    ADV --> FE
-    NEO --> EV
-
-    class A1,A2 source
-    class AD ingest
-    class CS schema
-    class E1,E2 extract
-    class I1,I2 infer
-    class NEO,PGV store
-    class RES,DISC,ADV api
-    class EV eval
-    class FE frontend
-
-    style OUTER fill:#f8fafc,stroke:none
-    style SRC fill:#eff6ff,stroke:#2563eb,stroke-width:1px
-    style ING fill:#fffbeb,stroke:#d97706,stroke-width:1px
-    style SCHEMA fill:#f5f3ff,stroke:#7c3aed,stroke-width:1px
-    style EXT fill:#f0fdf4,stroke:#16a34a,stroke-width:1px
-    style INF fill:#fef2f2,stroke:#dc2626,stroke-width:1px
-    style STORE fill:#ecfeff,stroke:#0891b2,stroke-width:1px
-    style API fill:#fdf4ff,stroke:#c026d3,stroke-width:1px
-    style EVAL fill:#fefce8,stroke:#ca8a04,stroke-width:1px
-```
+![End-to-end architecture: three horizontal layers, top to bottom. Layer 1 (sources → ingestion → schema → extraction → inference) flows left to right. Layer 2 in the middle holds the two stores, Neo4j and pgvector. Layer 3 holds the API, evaluation harness, and frontend, fed from the stores below.](docs/architecture.svg)
 
 Genericity lives entirely at the ingestion adapter boundary — nothing downstream of
 the canonical schema knows which institution or platform a record came from.
@@ -124,7 +41,8 @@ the canonical schema knows which institution or platform a record came from.
 src/granular/
   schema/       Course, Programme, DeclaredEdge, InferredEdge, Concept, KnowledgeUnit,
                 ProvenanceRecord, Authority — the types every other package shares
-  ingestion/    Acalog adapter, purdue.io client, cs_canonical (CS2023 bootstrap parser)
+  ingestion/    UIUC static adapter (primary), Purdue adapters (Acalog + OData + canonical),
+                cs_canonical parser
   extraction/   concept extraction + 4-stage KU alignment pipeline (retrieve/rerank/reject/verify)
   inference/    dependency scoring, ordering validation, cycle resolution -> DEPENDS_ON edges
   api/          FastAPI app: QueryResolver, DiscoverService, advisory-query services
@@ -142,36 +60,36 @@ only allowed to narrow — never to introduce new candidates:
 
 ```mermaid
 flowchart TD
-    RC["RawConcept\n(label only, extracted from course prose)"] --> S1
+    RC["RawConcept<br/>(label only, extracted from course prose)"] --> S1
 
-    subgraph S1["Stage 1 · Retrieve — retrieve.py"]
+    subgraph S1["Stage 1 — retrieve.py"]
         direction TB
-        R1["Embed the bare concept label\n(no metadata mixed in)"]
-        R2["pgvector top-k similarity\nagainst KnowledgeUnit embeddings"]
+        R1["Embed the bare concept label<br/>(no metadata mixed in)"]
+        R2["pgvector top-k similarity<br/>against KnowledgeUnit embeddings"]
         R1 --> R2
     end
 
     S1 -->|"top-k CandidateKU"| S2
 
-    subgraph S2["Stage 2 · Rerank — rerank.py"]
+    subgraph S2["Stage 2 — rerank.py"]
         direction TB
-        RR["weighted sum:\nsimilarity + KU co-occurrence\n+ course-level proximity\n+ department (soft prior, 0.05 constant)"]
+        RR["weighted sum:<br/>similarity + KU co-occurrence<br/>+ course-level proximity<br/>+ department (soft prior, 0.05 constant)"]
     end
 
     S2 -->|"ranked candidates"| S3
 
-    subgraph S3["Stage 3 · Reject — reject.py"]
+    subgraph S3["Stage 3 — reject.py"]
         direction TB
-        RJ["Drop candidates that would create\na prerequisite-ordering violation\nagainst concepts already committed this run"]
+        RJ["Drop candidates that would create<br/>a prerequisite-ordering violation<br/>against concepts already committed this run"]
     end
 
     S3 -->|"surviving candidates"| S4
 
-    subgraph S4["Stage 4 · Verify — verify.py"]
+    subgraph S4["Stage 4 — verify.py"]
         direction TB
         V1["Winner = top-ranked survivor"]
-        V2["Confidence = temperature-scaled\nsoftmax margin over top-2 scores"]
-        V3{"LLM cross-domain check:\ngenuinely the CS topic,\nnot lexical overlap?"}
+        V2["Confidence = temperature-scaled<br/>softmax margin over top-2 scores"]
+        V3{"LLM cross-domain check:<br/>genuinely the CS topic,<br/>not lexical overlap?"}
         V1 --> V2 --> V3
     end
 
@@ -199,32 +117,33 @@ Runs over the aligned concept set already committed to Neo4j and produces
 
 ```mermaid
 flowchart TD
-    CN["ConceptNode pairs (a depends_on b)\nsame concept, same course excluded"] --> HF
+    CN["ConceptNode pairs (a depends_on b)<br/>same concept, same course excluded"] --> HF
 
-    HF{"Hard filter:\ncourse_level(b) > course_level(a)?"}
+    HF{"Hard filter:<br/>course_level(b) > course_level(a)?"}
     HF -->|yes: b is higher level| DROP1["dropped — never infer upward"]
     HF -->|no| SCORE
 
-    subgraph SCORE["DependencyScorer — weighted structural score"]
+    subgraph SCORE["DependencyScorer"]
         direction TB
-        SIG1["course_level signal\nweight 0.45"]
-        SIG2["prerequisite_prior signal\n(declared prereqs at course level)\nweight 0.40"]
-        SIG3["ku_cooccurrence signal\nweight 0.15"]
+        SIG1["course_level signal<br/>weight 0.45"]
+        SIG2["prerequisite_prior signal<br/>(declared prereqs at course level)<br/>weight 0.40"]
+        SIG3["ku_cooccurrence signal<br/>weight 0.15"]
     end
 
-    SCORE --> TH{"score >= min_dependency_score\n(0.55)?"}
+    SCORE --> TH{"score >= min_dependency_score<br/>(0.55)?"}
     TH -->|no| DROP2["dropped"]
-    TH -->|yes| ORD{"OrderingValidator:\ncontradicts a declared\nprerequisite ordering?"}
-    ORD -->|contradiction| DROP3["rejected —\nprerequisite_ordering_contradiction"]
-    ORD -->|ok| CYC["resolve_cycles()\nremoves lowest-confidence edge\nin any cycle"]
-    CYC --> OUT["surviving InferredEdge\n(CONCEPT_DEPENDENCY / DEPENDS_ON)"]
+    TH -->|yes| ORD{"OrderingValidator:<br/>contradicts a declared<br/>prerequisite ordering?"}
+    ORD -->|contradiction| DROP3["rejected —<br/>prerequisite_ordering_contradiction"]
+    ORD -->|ok| CYC["resolve_cycles()<br/>removes lowest-confidence edge<br/>in any cycle"]
+    CYC --> OUT["surviving InferredEdge<br/>(CONCEPT_DEPENDENCY / DEPENDS_ON)"]
 ```
 
-`min_dependency_score` was raised from 0.35 → **0.55** after evaluation showed the
-0.40–0.50 confidence band was ~77% of all inferred edges and overwhelmingly false
-positive — the higher threshold keeps held-out recall (~0.483) while cutting
-false-positive-prone course-pairs roughly 10x. This is a concrete example of the
-evaluation harness driving a pipeline change (see the case study below).
+`min_dependency_score` was raised from 0.35 to **0.55** after evaluation showed
+the 0.40–0.50 confidence band accounted for ~77% of all inferred edges and was
+overwhelmingly false positive. The higher threshold keeps held-out recall around
+0.483 while cutting false-positive-prone course-pairs roughly 10x — a concrete
+example of the evaluation harness driving a pipeline change (see the case study
+below).
 
 ---
 
@@ -283,29 +202,30 @@ hidden.
 
 ### Evaluation orchestration
 
-`granular-eval` is five independent commands, not one pipeline. Only `run`
-produces a versioned, checksummed artefact directory; the other three each write
-a single standalone JSON file to `data/evaluation/output/` and are invoked
-separately.
+`granular-eval` has five independent commands — `run`, `ablation`, `alignment`,
+`discover`, and `split` — not one pipeline. Only `run` produces a versioned,
+checksummed artefact directory. `ablation`, `alignment`, and `discover` each
+write a single standalone JSON file to `data/evaluation/output/`. `split` is
+currently a stub (see the known gaps below).
 
 ```mermaid
 flowchart TD
-    START(["granular-eval run"]) --> LOAD["load inferred graph + all declared prereqs\nfrom Neo4j as they already stand\n(injected graph_loader — testable without live Neo4j)"]
-    LOAD --> SPLIT["HeldOutSplit.create()\nshuffle(seed=42), hold out 20%\n-> {run_id}_split.json\n(AFTER loading — see caveat below)"]
-    SPLIT --> HEAD["MetricCalculator.compute_all_bands()\nheadline F1: all / high / medium / low confidence"]
-    HEAD --> KA["compute_by_knowledge_area()\nper-CS2023-area F1, flags poor_coverage (F1 < 0.40)"]
-    KA --> REPRO["ReproductionClassifier.classify_all()\nreproduces_declared vs. novel"]
-    REPRO --> FAIL["FailureReporter.collect()\nnot_machine_checkable, rejected model outputs,\ncycle removals, ordering rejections, poor-coverage areas"]
-    FAIL --> ABLSTUB["ablation field = full-pipeline metric,\nrepeated for all 3 conditions\n(placeholder — see note below)"]
-    ABLSTUB --> REPORT["ReportBuilder.build()\n-> {run_id}_report.json + {run_id}_report.md"]
-    REPORT --> ART["ArtefactStore.finalise_manifest()\nsha256 checksum every artefact\n-> {run_id}_manifest.json"]
+    START(["granular-eval run"]) --> LOAD["load inferred graph + all declared prereqs<br/>from Neo4j as they already stand<br/>(injected graph_loader — testable without live Neo4j)"]
+    LOAD --> SPLIT["HeldOutSplit.create()<br/>shuffle(seed=42), hold out 20%<br/>-> {run_id}_split.json<br/>(AFTER loading — see caveat below)"]
+    SPLIT --> HEAD["MetricCalculator.compute_all_bands()<br/>headline F1: all / high / medium / low confidence"]
+    HEAD --> KA["compute_by_knowledge_area()<br/>per-CS2023-area F1, flags poor_coverage (F1 < 0.40)"]
+    KA --> REPRO["ReproductionClassifier.classify_all()<br/>reproduces_declared vs. novel"]
+    REPRO --> FAIL["FailureReporter.collect()<br/>not_machine_checkable, rejected model outputs,<br/>cycle removals, ordering rejections, poor-coverage areas"]
+    FAIL --> ABLSTUB["ablation field = full-pipeline metric,<br/>repeated for all 3 conditions<br/>(placeholder — see note below)"]
+    ABLSTUB --> REPORT["ReportBuilder.build()<br/>-> {run_id}_report.json + {run_id}_report.md"]
+    REPORT --> ART["ArtefactStore.finalise_manifest()<br/>sha256 checksum every artefact<br/>-> {run_id}_manifest.json"]
     ART --> END(["data/evaluation/runs/{run_id}/"])
 
-    ABLCMD(["granular-eval ablation\n(separate command)"]) --> ABLREAL["AblationRunner.run_all()\nreruns scoring in-memory per mode:\nretrieval_only / retrieval_rerank / full_pipeline"]
-    ABLREAL --> ABLOUT["data/evaluation/output/ablation.json\n(not merged into the run report)"]
+    ABLCMD(["granular-eval ablation<br/>(separate command)"]) --> ABLREAL["AblationRunner.run_all()<br/>reruns scoring in-memory per mode:<br/>retrieval_only / retrieval_rerank / full_pipeline"]
+    ABLREAL --> ABLOUT["data/evaluation/output/ablation.json<br/>(not merged into the run report)"]
 
-    ALCMD(["granular-eval alignment\n(separate command)"]) --> ALOUT["data/evaluation/output/alignment_precision.json"]
-    DISCCMD(["granular-eval discover\n(separate command)"]) --> DISCOUT["data/evaluation/output/discover_relevance.json"]
+    ALCMD(["granular-eval alignment<br/>(separate command)"]) --> ALOUT["data/evaluation/output/alignment_precision.json"]
+    DISCCMD(["granular-eval discover<br/>(separate command)"]) --> DISCOUT["data/evaluation/output/discover_relevance.json"]
 ```
 
 **Known gaps between the original spec and the current implementation** (worth
@@ -327,18 +247,19 @@ degradation" principle):
   `cli.py` currently invokes them — that track is a usable library component, not
   yet an end-to-end runnable eval.
 - **The held-out split is created *after* loading the graph, not before
-  inference.** `Neo4jGraphLoader` reads whatever inference already produced and
-  wrote to Neo4j — from a `granular-infer` run that had full visibility of *all*
-  declared prerequisites (the `prerequisite_prior` signal, 40% of the dependency
-  score, is built directly from the full declared-edge set). `EvalRunner.run()`
-  then draws the held-out split from that same full set purely to score recall
-  after the fact. This is a materially weaker guarantee than REQ-EH-01's
-  "withhold before inference, remove from Neo4j, restore after" design: the
-  signal that recovers a held-out pair may have seen that exact pair as a
-  training input. The headline F1 should be read as "how well does the graph
-  reproduce this subset of declared prerequisites," not as a leakage-free
-  generalisation test, unless a fresh `granular-infer` run is deliberately
-  pointed at a graph built from `split.train` only.
+  inference** — a materially weaker guarantee than REQ-EH-01's "withhold before
+  inference, remove from Neo4j, restore after" design:
+  - `Neo4jGraphLoader` reads whatever inference already produced and wrote to
+    Neo4j, from a `granular-infer` run that had full visibility of *all*
+    declared prerequisites (the `prerequisite_prior` signal, 40% of the
+    dependency score, is built directly from the full declared-edge set).
+  - `EvalRunner.run()` then draws the held-out split from that same full set
+    purely to score recall after the fact — so the signal that recovers a
+    held-out pair may already have seen that exact pair as a training input.
+  - Read the headline F1 as "how well does the graph reproduce this subset of
+    declared prerequisites," not as a leakage-free generalisation test —
+    unless a fresh `granular-infer` run is deliberately pointed at a graph
+    built from `split.train` only.
 
 ### 1 · Headline metric — prerequisite recovery (`metric.py`)
 
@@ -376,13 +297,13 @@ only `novel` edges can make that claim, and only after expert judgement.
 
 ```mermaid
 flowchart LR
-    NOV["novel InferredEdges"] --> SAMP["stratified sample\nby knowledge area"]
-    DIST["distractor pairs:\npgvector cosine 0.4–0.6,\nno inferred edge — plausible but unasserted"] --> MIX
-    SAMP --> MIX["shuffle(fixed seed)\ninferred + distractors combined"]
-    MIX --> BLIND["judgement_set_blind.json\nno inferred/distractor label,\nno confidence score visible"]
-    BLIND --> EXPERT["domain expert judges each item\nagainst rubric.md"]
+    NOV["novel InferredEdges"] --> SAMP["stratified sample<br/>by knowledge area"]
+    DIST["distractor pairs:<br/>pgvector cosine 0.4–0.6,<br/>no inferred edge — plausible but unasserted"] --> MIX
+    SAMP --> MIX["shuffle(fixed seed)<br/>inferred + distractors combined"]
+    MIX --> BLIND["judgement_set_blind.json<br/>no inferred/distractor label,<br/>no confidence score visible"]
+    BLIND --> EXPERT["domain expert judges each item<br/>against rubric.md"]
     EXPERT --> LABEL["judgement_set_labelled.json"]
-    LABEL --> AGREE["compare expert label\nvs. pipeline confidence band"]
+    LABEL --> AGREE["compare expert label<br/>vs. pipeline confidence band"]
 ```
 
 Rubric (written *before* any judgement is recorded, per item: `correct` /
@@ -439,13 +360,13 @@ eval-driven-fixes commit — see the case study below.
 
 ### 6 · Discover relevance (`discover_eval.py`, run via `granular-eval discover`) — added by `feat/quality-evals`
 
-Evaluates the **advisory surface itself**, not just the graph underneath it: for
+Evaluates the **advisory surface itself**, not just the graph underneath it. For
 18 hand-labelled plain-English queries (`data/evaluation/discover_labels.json`,
-e.g. `"machine learning" → {IS}`, `"databases and SQL" → {IM}`), resolve the query
-through the real `QueryResolver` and compare the **knowledge areas** reached
-against the expected areas (areas, not specific KU ids, because areas are stable
-across CS2023 vocabulary revisions). Reports per-query and macro
-precision/recall/F1.
+e.g. `"machine learning" → {IS}`, `"databases and SQL" → {IM}`), each query is
+resolved through the real `QueryResolver` and the **knowledge areas** it reaches
+are compared against the expected areas — areas, not specific KU ids, because
+areas stay stable across CS2023 vocabulary revisions. Reports per-query and
+macro precision/recall/F1.
 
 ### 7 · Failure reporting (`failure.py`)
 

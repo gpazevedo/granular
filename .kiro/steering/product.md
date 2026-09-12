@@ -6,7 +6,7 @@ inclusion: always
 
 ## What this project builds
 
-A system that ingests Purdue University's published CS curriculum (undergraduate and graduate), produces a two-layer knowledge map, and answers student queries about what to learn next.
+A system that ingests UIUC's published CS curriculum (undergraduate and graduate), produces a two-layer knowledge map, and answers student queries about what to learn next.
 
 **Layer one — the structural record.** Programmes, courses, requirement rules and the relationships the institution publishes. Derived by deterministic parsing. Auditable back to a source page with a retrieval date.
 

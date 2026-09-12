@@ -8,10 +8,10 @@ This file records decisions made during the requirements clarification session. 
 
 ## Institution and platform
 
-- **Single institution:** Purdue University (undergraduate and graduate CS courses)
-- **Single platform:** Modern Campus Acalog — `catalog.purdue.edu`
-- **Secondary structured source:** purdue.io OData v4 API (community-built, open, no authentication required)
-- The original project definition required two institutions on two different platforms. This constraint is deliberately relaxed. The genericity claim is scoped to: one adapter serving the Modern Campus platform, which hosts many institutions — adapter genericity is demonstrated by platform coverage, not institution count.
+- **Primary institution:** UIUC (University of Illinois Urbana-Champaign) — static catalog at `catalog.illinois.edu`
+- **Primary adapter:** `uiuc_static` — single-page HTML parsing, no bot mitigation, no authentication
+- **Secondary adapter:** Purdue University (Modern Campus Acalog + purdue.io OData) — available but not the primary development target
+- The original project definition required two institutions on two different platforms. This constraint is deliberately relaxed. The genericity claim is scoped to: the canonical schema and downstream pipelines work with any adapter's output — adapter genericity is demonstrated by having multiple adapters, not by requiring their simultaneous use.
 
 ## Scope changes from original project definition
 
@@ -22,7 +22,7 @@ This file records decisions made during the requirements clarification session. 
 | No student records or persistence | **Confirmed — session-scoped only, nothing persisted** | Structural guarantee maintained |
 | Administrator analytics | **Removed from scope** | Simplified out |
 | Student course selection persistence | **Removed from scope** | Session-scoped only |
-| Two institutions on two platforms | **One institution, one platform** | Scope focused on Purdue CS |
+| Two institutions on two platforms | **One primary institution (UIUC), secondary adapter (Purdue) available** | Scope focused on iterative development with the simpler static-catalog adapter |
 
 ## Primary capability definition
 

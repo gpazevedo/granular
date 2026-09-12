@@ -15,7 +15,7 @@ from granular.ingestion.runner import IngestRunner
 from granular.ingestion.snapshot import create_snapshot, verify_snapshot
 from granular.ingestion.uiuc_runner import UiucRunner
 
-app = typer.Typer(help="Ingest Purdue CS course catalogue from Modern Campus Acalog.")
+app = typer.Typer(help="Ingest CS course catalogues. Primary adapter: UIUC (static). Secondary: Purdue (Acalog + OData).")
 
 DEFAULT_SNAPSHOT_ROOT = Path("data/snapshots")
 
